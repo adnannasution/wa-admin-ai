@@ -1,0 +1,20 @@
+{
+  "name": "wa-admin-ai",
+  "version": "0.1.0",
+  "description": "Admin WhatsApp + AI untuk UMKM (Fonnte + Claude)",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/server.js",
+    "dev": "node --watch --disable-warning=ExperimentalWarning src/server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "express": "^5.3.0"
+  }
+}
