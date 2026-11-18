@@ -1,0 +1,40 @@
+1
+00:00:00,300 --> 00:00:04,700
+Chat pelanggan numpuk, padahal tanganmu cuma dua?
+
+2
+00:00:05,300 --> 00:00:12,700
+Balas satu-satu, catat pesanan manual, nagih yang belum transfer. Telat sedikit, pembeli kabur.
+
+3
+00:00:13,300 --> 00:00:19,200
+Kenalin, WA Admin AI. Admin WhatsApp yang kerja dua puluh empat jam.
+
+4
+00:00:19,800 --> 00:00:27,700
+Tanya harga, stok, atau ongkir? AI langsung jawab, sesuai katalog dan info tokomu. Nggak ngarang.
+
+5
+00:00:28,300 --> 00:00:36,700
+Mau pesan? AI rangkum, minta konfirmasi, lalu kirim invoice dan cara bayar. Stok berkurang otomatis.
+
+6
+00:00:37,300 --> 00:00:42,200
+Pelanggan yang lupa transfer, diingatkan otomatis.
+
+7
+00:00:42,800 --> 00:00:49,200
+Ada komplain? AI langsung serahkan ke kamu, dan kamu dapat notifikasi di WhatsApp.
+
+8
+00:00:49,800 --> 00:00:56,700
+Pakai nomor WhatsApp tokomu sendiri. Cukup scan QR sekali, lima menit langsung jalan.
+
+9
+00:00:57,300 --> 00:01:03,200
+Pantau chat, pesanan, dan omzet dari satu dashboard, di laptop atau HP.
+
+10
+00:01:03,800 --> 00:01:11,200
+WA Admin AI. Biar AI yang jaga chat, kamu fokus jualan. Daftar sekarang, link di deskripsi.
+
