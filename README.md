@@ -2,6 +2,11 @@
 
 Admin WhatsApp otomatis untuk UMKM. Pelanggan chat ke nomor toko, AI (Claude) yang membalas: menjawab pertanyaan produk, mencatat pesanan, mengirim info pembayaran, dan mengingatkan pelanggan yang belum bayar. WhatsApp-nya lewat **[Fonnte](https://fonnte.com)**.
 
+## Dokumentasi
+- 📘 **Manual book (PDF, 43 halaman)**: [`docs/manual/Manual-WA-Admin-AI.pdf`](docs/manual/Manual-WA-Admin-AI.pdf). Sumbernya ada di [`docs/manual/manual.html`](docs/manual/manual.html), screenshot di `docs/manual/img/`.
+- 🎬 **Video tutorial pedagang** (3 menit): [`docs/video/Tutorial-Pedagang-WA-Admin-AI.mp4`](docs/video/Tutorial-Pedagang-WA-Admin-AI.mp4)
+- 🎬 **Video tutorial owner platform** (1 menit): [`docs/video/Tutorial-Owner-WA-Admin-AI.mp4`](docs/video/Tutorial-Owner-WA-Admin-AI.mp4)
+
 ## Fitur MVP
 - **Auto-reply AI**: hanya menjawab dari katalog dan info toko, tidak mengarang harga.
 - **Pesanan otomatis**: AI merangkum pesanan, minta konfirmasi, lalu membuat invoice (`INVyymmdd-XXXX`). Stok berkurang otomatis.

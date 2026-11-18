@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manual Book WA Admin AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--brand:#059669;--brand2:#047857;--soft:#e3f6ee;--ink:#0f1f17;--muted:#5f6f67;--line:#dfe7e2;--amber:#b45309;--amber-soft:#fef3c7;--red:#b91c1c;--red-soft:#fee2e2;--blue:#1d4ed8;--blue-soft:#dbeafe}
+*{box-sizing:border-box}
+html{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;font:11pt/1.6 "Plus Jakarta Sans",system-ui,sans-serif;color:var(--ink);background:#fff}
+@page{size:A4;margin:18mm 16mm 20mm}
+@page:first{margin:0}
+h1,h2,h3,h4{line-height:1.25;letter-spacing:-.01em;break-after:avoid}
+h1{font-size:24pt;margin:0 0 6pt}
+h2{font-size:17pt;margin:22pt 0 8pt;padding-top:4pt;color:var(--brand2)}
+h3{font-size:13pt;margin:16pt 0 6pt}
+h4{font-size:11pt;margin:12pt 0 4pt}
+p{margin:0 0 8pt}
+a{color:var(--brand2)}
+code,kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.9em;background:#f1f5f3;border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+ul,ol{margin:0 0 10pt;padding-left:18pt}li{margin:2pt 0}
+table{width:100%;border-collapse:collapse;margin:6pt 0 12pt;font-size:10pt;break-inside:avoid}
+th,td{border:1px solid var(--line);padding:6pt 8pt;text-align:left;vertical-align:top}
+th{background:var(--soft);color:var(--brand2);font-weight:700}
+.wrap{max-width:180mm;margin:0 auto}
+
+/* cover */
+.cover{height:297mm;padding:26mm 22mm;color:#fff;display:flex;flex-direction:column;justify-content:space-between;break-after:page;
+  background:radial-gradient(700px 420px at 0 0,rgba(255,255,255,.18),transparent 60%),linear-gradient(150deg,#065f46,#059669 55%,#10b981)}
+.cover .logo{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.18)}
+.cover h1{font-size:38pt;color:#fff;margin:18pt 0 8pt;max-width:14ch}
+.cover .sub{font-size:14pt;opacity:.92;max-width:34ch}
+.cover .meta{display:flex;gap:10pt;flex-wrap:wrap}
+.cover .meta span{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);padding:5pt 12pt;border-radius:99px;font-weight:600;font-size:10pt}
+.cover img{width:100%;border-radius:14px;box-shadow:0 20px 50px -20px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.3)}
+
+/* parts & chapters */
+.part{break-before:page;padding:40mm 0 0}
+.part .k{color:var(--brand);font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:10pt}
+.part h1{font-size:30pt;margin:6pt 0 10pt}
+.part p.lead{font-size:13pt;color:var(--muted);max-width:42ch}
+.chapter{break-before:page}
+.chapter > h2:first-child{margin-top:0}
+.num{display:inline-grid;place-items:center;width:24pt;height:24pt;border-radius:7pt;background:var(--brand);color:#fff;font-size:12pt;margin-right:6pt;vertical-align:2pt}
+
+/* figures */
+figure{margin:8pt 0 14pt;break-inside:avoid}
+figure img{display:block;width:100%;border:1px solid var(--line);border-radius:8pt;box-shadow:0 6px 18px -10px rgba(15,31,23,.35)}
+figure.half img{width:62%;margin:0 auto}
+figure.phone{display:inline-block;width:31%;margin:4pt 1%;vertical-align:top}
+figure.phone img{border-radius:12pt}
+figcaption{font-size:9pt;color:var(--muted);margin-top:5pt;text-align:center}
+figcaption b{color:var(--ink)}
+
+/* callouts */
+.note{border-radius:8pt;padding:9pt 12pt;margin:8pt 0 12pt;break-inside:avoid;font-size:10pt}
+.note b:first-child{display:block;margin-bottom:2pt}
+.tip{background:var(--soft);border-left:4px solid var(--brand)}
+.warn{background:var(--amber-soft);border-left:4px solid var(--amber)}
+.danger{background:var(--red-soft);border-left:4px solid var(--red)}
+.info{background:var(--blue-soft);border-left:4px solid var(--blue)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps>li{counter-increment:s;position:relative;padding-left:26pt;margin:6pt 0}
+.steps>li::before{content:counter(s);position:absolute;left:0;top:1pt;width:18pt;height:18pt;border-radius:50%;background:var(--soft);color:var(--brand2);font-weight:800;font-size:9pt;display:grid;place-items:center}
+.pill{display:inline-block;padding:0 7pt;border-radius:99px;font-size:9pt;font-weight:700;background:#eef2f0}
+.pill.g{background:#d1fae5;color:#047857}.pill.a{background:var(--amber-soft);color:var(--amber)}.pill.b{background:var(--blue-soft);color:var(--blue)}.pill.v{background:#ede9fe;color:#6d28d9}.pill.r{background:var(--red-soft);color:var(--red)}
+
+/* toc */
+.toc{break-before:page}
+.toc ol{list-style:none;padding:0}
+.toc li{padding:2.6pt 0 2.6pt 12pt;border-bottom:1px dotted var(--line);font-size:10.5pt}
+.toc li.part-row{font-weight:800;color:var(--brand2);border-bottom:0;margin-top:9pt;padding-left:0;font-size:11.5pt}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12pt}
+@media screen{body{background:#eef2f0}.wrap{background:#fff;padding:18mm 16mm;margin:20px auto;box-shadow:0 10px 40px -20px rgba(0,0,0,.3)}.cover{max-width:210mm;margin:0 auto}}
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div>
+    <div class="logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11.6a8.5 8.5 0 0 1-12.6 7.5L3.5 20.5l1.4-4.2A8.5 8.5 0 1 1 20.5 11.6z"/><path d="M9 9.2c.2 1.6 2.2 4.4 4.6 5 .6.1 1.3-.4 1.5-1l-1.5-.9-.8.6c-.9-.4-1.8-1.3-2.2-2.2l.6-.8L10.3 8.4c-.6.2-1.4.3-1.3.8z"/></svg></div>
+    <h1>Manual Book WA Admin AI</h1>
+    <p class="sub">Panduan lengkap untuk <b>pedagang</b> yang memakai WA Admin AI dan untuk <b>owner platform</b> yang mengelolanya.</p>
+  </div>
+  <img src="img/p17-dashboard.jpg" alt="Tampilan dashboard WA Admin AI">
+  <div class="meta"><span>Versi 1.0</span><span>Bagian A · Pedagang</span><span>Bagian B · Owner platform</span></div>
+</section>
+
+<div class="wrap">
+
+<!-- ============================== TOC ============================== -->
+<section class="toc" style="break-before:auto">
+  <h1>Daftar isi</h1>
+  <ol>
+    <li><span>Pengantar: apa itu WA Admin AI?</span></li>
+    <li class="part-row"><span>Bagian A — Panduan Pedagang</span></li>
+    <li><span>A1. Daftar &amp; masuk</span></li>
+    <li><span>A2. Mengisi Pengaturan toko</span></li>
+    <li><span>A3. Mengelola produk</span></li>
+    <li><span>A4. Menyambungkan WhatsApp</span></li>
+    <li><span>A5. Cara AI melayani pelanggan</span></li>
+    <li><span>A6. Percakapan &amp; mengambil alih chat</span></li>
+    <li><span>A7. Perintah WhatsApp untuk pemilik (#stop / #start)</span></li>
+    <li><span>A8. Mengelola pesanan</span></li>
+    <li><span>A9. Dashboard</span></li>
+    <li><span>A10. Pengingat pembayaran otomatis</span></li>
+    <li><span>A11. Memakai di HP</span></li>
+    <li><span>A12. Tanya jawab &amp; masalah umum (pedagang)</span></li>
+    <li class="part-row"><span>Bagian B — Panduan Owner Platform</span></li>
+    <li><span>B1. Gambaran sistem</span></li>
+    <li><span>B2. Deploy ke Railway</span></li>
+    <li><span>B3. Variabel lingkungan</span></li>
+    <li><span>B4. Akun owner &amp; panel Admin Platform</span></li>
+    <li><span>B5. Menyambungkan WhatsApp toko (otomatis &amp; manual)</span></li>
+    <li><span>B6. Tes koneksi &amp; menangguhkan toko</span></li>
+    <li><span>B7. Biaya &amp; paket (Fonnte dan AI)</span></li>
+    <li><span>B8. Database, backup &amp; update aplikasi</span></li>
+    <li><span>B9. Keamanan</span></li>
+    <li><span>B10. Masalah umum (owner)</span></li>
+    <li class="part-row"><span>Lampiran</span></li>
+    <li><span>Status pesanan · Ringkasan perintah · Glosarium</span></li>
+  </ol>
+</section>
+
+<!-- ============================== INTRO ============================== -->
+<section class="chapter">
+  <h2>Pengantar: apa itu WA Admin AI?</h2>
+  <p><b>WA Admin AI</b> adalah admin WhatsApp otomatis untuk toko online. Pelanggan tetap chat ke <b>nomor WhatsApp toko seperti biasa</b>, tapi yang membalas adalah AI, 24 jam sehari. AI-nya bisa:</p>
+  <ul>
+    <li>menjawab pertanyaan harga, stok, jam buka, alamat, dan ongkir, <b>hanya</b> dari data yang kamu isi;</li>
+    <li>mencatat pesanan dan membuat <b>invoice</b> otomatis setelah pelanggan setuju;</li>
+    <li>mengirim cara pembayaran dan <b>mengingatkan</b> pelanggan yang belum transfer;</li>
+    <li>menyerahkan chat ke kamu kalau ada komplain, retur, atau pertanyaan di luar kemampuannya.</li>
+  </ul>
+  <h3>Siapa memakai apa?</h3>
+  <table>
+    <tr><th style="width:24%">Peran</th><th>Yang dilakukan</th><th style="width:26%">Bagian manual</th></tr>
+    <tr><td><b>Pedagang</b> (pemilik toko)</td><td>Mendaftar, mengisi info toko &amp; produk, menyambungkan WhatsApp, memantau chat &amp; pesanan.</td><td>Bagian A</td></tr>
+    <tr><td><b>Owner platform</b> (pengelola layanan)</td><td>Menjalankan aplikasi di server, menyediakan akun Fonnte &amp; AI, mengelola semua toko, menangguhkan toko yang belum bayar.</td><td>Bagian B</td></tr>
+    <tr><td><b>Pelanggan</b> toko</td><td>Chat ke nomor WhatsApp toko seperti biasa. Tidak perlu memasang apa pun.</td><td>—</td></tr>
+  </table>
+  <div class="note info"><b>Catatan tentang screenshot</b>Semua gambar di manual ini diambil dari aplikasi asli dengan data contoh toko fiktif "Dapur Kue Bunda" dan "Kopi Senja". QR code di gambar hanya contoh dan tidak bisa di-scan.</div>
+</section>
+
+<!-- ============================== PART A ============================== -->
+<section class="part">
+  <div class="k">Bagian A</div>
+  <h1>Panduan Pedagang</h1>
+  <p class="lead">Dari daftar akun sampai pesanan pertama masuk. Ikuti bab A1–A4 secara berurutan saat pertama kali memakai.</p>
+  <div class="note tip" style="max-width:120mm"><b>Yang perlu disiapkan</b>
+    <ul style="margin:4pt 0 0">
+      <li>HP dengan WhatsApp nomor toko (WhatsApp biasa atau WhatsApp Business).</li>
+      <li>Nomor WhatsApp lain milik pemilik toko, untuk notifikasi.</li>
+      <li>Daftar produk dan harga, info toko, dan rekening pembayaran.</li>
+      <li>Alamat aplikasi dari owner platform, misalnya <code>https://wa-admin-ai.up.railway.app</code>.</li>
+    </ul></div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A1</span>Daftar &amp; masuk</h2>
+  <ol class="steps">
+    <li>Buka alamat aplikasi di browser (Chrome/Safari), lalu klik <b>Daftar gratis</b>, atau buka langsung <code>/register</code>.</li>
+    <li>Isi <b>Nama toko</b>, <b>Email</b>, dan <b>Password</b> (minimal 8 karakter).</li>
+    <li>Klik <b>Daftar sekarang</b>. Kamu langsung masuk dan diarahkan ke halaman <b>Pengaturan</b>.</li>
+  </ol>
+  <figure><img src="img/p01-daftar.jpg" alt=""><figcaption><b>Gambar A1.</b> Halaman pendaftaran toko.</figcaption></figure>
+  <p>Untuk masuk lagi di lain waktu, buka alamat aplikasi, isi email dan password di halaman <b>Masuk</b>. Sesi login berlaku 30 hari di perangkat yang sama. Untuk keluar, klik <b>Keluar</b> di pojok kiri bawah (desktop) atau ikon pintu di pojok kanan atas (HP).</p>
+  <div class="note warn"><b>Lupa password?</b>Untuk saat ini reset password dilakukan oleh owner platform. Hubungi admin layanan.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A2</span>Mengisi Pengaturan toko</h2>
+  <p>Halaman <b>Pengaturan</b> adalah "otak" AI. Semua yang kamu tulis di sini dipakai AI untuk menjawab pelanggan. Makin lengkap, makin sedikit chat yang perlu kamu balas sendiri.</p>
+  <figure><img src="img/p02-pengaturan-kosong.jpg" alt=""><figcaption><b>Gambar A2.</b> Halaman Pengaturan saat pertama kali dibuka.</figcaption></figure>
+  <h3>Isi tiap kolom</h3>
+  <table>
+    <tr><th style="width:28%">Kolom</th><th>Penjelasan &amp; contoh</th></tr>
+    <tr><td><b>Nama toko</b></td><td>Dipakai AI saat menyapa dan di pesan pengingat. Contoh: <i>Dapur Kue Bunda</i>.</td></tr>
+    <tr><td><b>Nomor WhatsApp toko</b></td><td>Nomor yang dihubungi pelanggan. Boleh ditulis <code>0812…</code>. Setelah WhatsApp disambungkan, kolom ini <b>terkunci</b>.</td></tr>
+    <tr><td><b>Nomor WA pemilik</b></td><td>Nomor pribadi pemilik, <b>harus berbeda</b> dari nomor toko. Dipakai untuk notifikasi pesanan baru, notifikasi "perlu admin", dan perintah <code>#stop</code>/<code>#start</code> (bab A7).</td></tr>
+    <tr><td><b>AI auto-reply aktif</b></td><td>Sakelar utama. Kalau dimatikan, AI tidak membalas siapa pun.</td></tr>
+    <tr><td><b>Cara pembayaran</b></td><td>Rekening, QRIS, atau e-wallet. Dikirim AI setelah invoice dibuat dan di pesan pengingat. Contoh: <i>Transfer BCA 1234567890 a.n. Bunda Sari, atau QRIS (minta ke admin)</i>.</td></tr>
+    <tr><td><b>Info toko</b></td><td>Tulis bebas seperti menjelaskan ke karyawan baru: jam buka, alamat, ongkir, cara pre-order, kebijakan retur, FAQ.</td></tr>
+  </table>
+  <figure><img src="img/p03-pengaturan-terisi.jpg" alt=""><figcaption><b>Gambar A3.</b> Contoh Pengaturan yang sudah terisi lengkap.</figcaption></figure>
+  <p>Klik <b>Simpan pengaturan</b>. Muncul notifikasi <b>Tersimpan</b> di atas layar.</p>
+  <figure class="half"><img src="img/p04-pengaturan-tersimpan.jpg" alt=""><figcaption><b>Gambar A4.</b> Notifikasi setelah disimpan.</figcaption></figure>
+  <div class="note tip"><b>Tips menulis Info toko yang bagus</b>
+    <ul style="margin:4pt 0 0">
+      <li>Tulis <b>ongkir</b> dengan jelas (dalam kota/luar kota). AI tidak akan menebak ongkir yang tidak ditulis.</li>
+      <li>Tulis aturan <b>pre-order</b>, <b>minimal order</b>, dan <b>retur</b>.</li>
+      <li>Tambahkan pertanyaan yang sering muncul. Contoh: <i>"Bisa COD? Bisa untuk area Bogor kota."</i></li>
+      <li>Hindari info yang sering berubah, seperti promo harian, kecuali kamu rajin memperbaruinya.</li>
+    </ul></div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A3</span>Mengelola produk</h2>
+  <p>Menu <b>Produk</b> berisi katalog yang dipakai AI. <b>AI hanya menawarkan produk, harga, dan stok yang ada di sini.</b></p>
+  <h3>Menambah produk</h3>
+  <ol class="steps">
+    <li>Buka menu <b>Produk</b>. Kalau sudah ada produk, klik <b>Buka form</b> di kartu "Tambah produk".</li>
+    <li>Isi <b>Nama</b>, <b>Harga (Rp)</b> tanpa titik (contoh <code>65000</code>), <b>Stok</b>, dan <b>Deskripsi</b>.</li>
+    <li>Kosongkan <b>Stok</b> kalau stok tidak terbatas (misalnya produk made-by-order).</li>
+    <li>Klik <b>Simpan</b>.</li>
+  </ol>
+  <figure><img src="img/p05-produk-form.jpg" alt=""><figcaption><b>Gambar A5.</b> Form tambah produk.</figcaption></figure>
+  <figure><img src="img/p06-produk-daftar.jpg" alt=""><figcaption><b>Gambar A6.</b> Daftar produk sebagai kartu, lengkap dengan badge stok.</figcaption></figure>
+  <h3>Arti badge stok</h3>
+  <table>
+    <tr><th>Badge</th><th>Arti</th></tr>
+    <tr><td><span class="pill g">Stok 12</span></td><td>Stok aman.</td></tr>
+    <tr><td><span class="pill a">Sisa 2</span></td><td>Stok tinggal 3 atau kurang. Segera tambah.</td></tr>
+    <tr><td><span class="pill r">Habis</span></td><td>Stok 0. AI akan bilang produk habis dan tidak membuat pesanan.</td></tr>
+    <tr><td><span class="pill">Stok ∞</span></td><td>Stok tidak dibatasi.</td></tr>
+    <tr><td><span class="pill">Nonaktif</span></td><td>Produk disembunyikan dari AI.</td></tr>
+  </table>
+  <h3>Mengubah atau menonaktifkan produk</h3>
+  <p>Klik kartu produk untuk membuka halaman ubah. Kamu bisa mengubah harga, stok, dan deskripsi, atau mematikan sakelar <b>Aktif</b> supaya produk tidak ditawarkan AI. Data pesanan lama tetap aman.</p>
+  <figure><img src="img/p07-produk-ubah.jpg" alt=""><figcaption><b>Gambar A7.</b> Halaman ubah produk.</figcaption></figure>
+  <div class="note info"><b>Stok berubah otomatis</b>Saat AI membuat pesanan, stok langsung berkurang. Saat pesanan diubah ke <b>Batal</b>, stok dikembalikan.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A4</span>Menyambungkan WhatsApp</h2>
+  <p>Langkah ini menautkan nomor WhatsApp toko ke WA Admin AI, mirip login WhatsApp Web. <b>Cukup dilakukan sekali.</b> Nomormu tetap milikmu, dan WhatsApp di HP tetap bisa dipakai seperti biasa.</p>
+  <ol class="steps">
+    <li>Pastikan <b>Nomor WhatsApp toko</b> sudah diisi di Pengaturan (bab A2).</li>
+    <li>Buka menu <b>WhatsApp</b>, lalu klik <b>Sambungkan WhatsApp</b>.</li>
+  </ol>
+  <figure><img src="img/p08-wa-mulai.jpg" alt=""><figcaption><b>Gambar A8.</b> Halaman WhatsApp sebelum disambungkan.</figcaption></figure>
+  <h3>Cara 1 — Scan QR (dashboard dibuka di laptop/HP lain)</h3>
+  <ol class="steps">
+    <li>Di HP yang memakai nomor toko, buka <b>WhatsApp</b>.</li>
+    <li>Ketuk <b>⋮</b> (Android) atau <b>Pengaturan</b> (iPhone) → <b>Perangkat tertaut</b> → <b>Tautkan perangkat</b>.</li>
+    <li>Arahkan kamera ke QR di layar. QR diperbarui otomatis setiap 30 detik.</li>
+  </ol>
+  <figure><img src="img/p09-wa-qr.jpg" alt=""><figcaption><b>Gambar A9.</b> QR siap di-scan.</figcaption></figure>
+  <h3>Cara 2 — Kode tautan (dashboard dibuka di HP yang sama)</h3>
+  <p>Kamu tidak bisa men-scan QR yang tampil di layar HP-mu sendiri. Pakai kode:</p>
+  <ol class="steps">
+    <li>Klik <b>Tidak bisa scan? Pakai kode</b>. Muncul kode 8 karakter.</li>
+    <li>Di WhatsApp: <b>Perangkat tertaut → Tautkan perangkat → Tautkan dengan nomor telepon saja</b>.</li>
+    <li>Masukkan kode yang tampil.</li>
+  </ol>
+  <figure><img src="img/p10-wa-kode.jpg" alt=""><figcaption><b>Gambar A10.</b> Mode kode tautan.</figcaption></figure>
+  <p>Begitu tersambung, halaman berubah sendiri menjadi tanda centang hijau. Status di sidebar menjadi <span class="pill g">● WA tersambung</span>.</p>
+  <figure><img src="img/p11-wa-tersambung.jpg" alt=""><figcaption><b>Gambar A11.</b> WhatsApp berhasil tersambung.</figcaption></figure>
+  <div class="note warn"><b>Penting</b>
+    <ul style="margin:4pt 0 0">
+      <li>Jangan hapus "WA Admin AI" atau perangkat tertaut lain dari daftar <b>Perangkat tertaut</b> di HP, karena AI akan berhenti.</li>
+      <li>Kalau HP mati atau lama tidak online (lebih dari ±14 hari), WhatsApp bisa memutus perangkat tertaut. Status di dashboard akan menunjukkan <span class="pill r">⚠️ WhatsApp terputus</span>. Sambungkan lagi dari menu WhatsApp.</li>
+      <li>Kalau muncul "Tim kami akan menyiapkan sambungan…", owner platform belum mengaktifkan sambungan otomatis. Tunggu QR dari owner.</li>
+    </ul></div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A5</span>Cara AI melayani pelanggan</h2>
+  <p>Setelah tersambung, setiap chat pribadi yang masuk ke nomor toko dijawab AI. <b>Chat grup diabaikan.</b> Alurnya:</p>
+  <table>
+    <tr><th style="width:5%">#</th><th style="width:32%">Pelanggan</th><th>Yang dilakukan AI</th></tr>
+    <tr><td>1</td><td>Bertanya harga/stok</td><td>Menjawab dari katalog dan info toko.</td></tr>
+    <tr><td>2</td><td>Mau pesan</td><td>Menanyakan produk, jumlah, nama, dan alamat, lalu mengirim <b>ringkasan + total</b> dan menunggu konfirmasi.</td></tr>
+    <tr><td>3</td><td>Menyetujui ringkasan</td><td>Membuat <b>invoice</b> (kode <code>INVyymmdd-XXXX</code>), mengirim cara bayar, mengurangi stok, dan mengirim notifikasi "🛒 Pesanan baru" ke nomor pemilik.</td></tr>
+    <tr><td>4</td><td>Bertanya status pesanan</td><td>Membaca status pesanan-pesanan terakhir pelanggan itu.</td></tr>
+    <tr><td>5</td><td>Komplain, retur, nego, atau hal yang tidak ada di info toko</td><td><b>Menyerahkan ke kamu</b>: AI berhenti membalas pelanggan itu, chat ditandai <span class="pill a">Perlu admin</span>, dan kamu dapat notifikasi "🔔 Perlu admin" di WA pemilik.</td></tr>
+  </table>
+  <figure><img src="img/p13-chat-ai.jpg" alt=""><figcaption><b>Gambar A12.</b> Contoh AI merangkum pesanan, lalu membuat invoice setelah pelanggan setuju.</figcaption></figure>
+  <div class="note tip"><b>AI tidak mengarang</b>AI diperintahkan untuk tidak mengarang produk, harga, stok, ongkir, atau promo. Kalau informasinya tidak ada, AI menyerahkan chat ke kamu. Jadi kalau AI sering menyerahkan chat, biasanya Info toko perlu dilengkapi.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A6</span>Percakapan &amp; mengambil alih chat</h2>
+  <p>Menu <b>Percakapan</b> menampilkan semua pelanggan yang pernah chat. Chat yang butuh kamu selalu ada <b>di urutan paling atas</b>.</p>
+  <figure><img src="img/p14-percakapan-perlu-admin.jpg" alt=""><figcaption><b>Gambar A13.</b> Daftar percakapan. Chat komplain ditandai "Perlu admin".</figcaption></figure>
+  <h3>Arti status percakapan</h3>
+  <table>
+    <tr><th style="width:30%">Status</th><th>Arti</th></tr>
+    <tr><td><span class="pill g">🤖 AI aktif</span></td><td>AI membalas pelanggan ini.</td></tr>
+    <tr><td><span class="pill a">Perlu admin</span></td><td>AI menyerahkan chat ke kamu dan berhenti membalas. Segera balas.</td></tr>
+    <tr><td><span class="pill">AI dijeda</span></td><td>Kamu (atau perintah <code>#stop</code>) menjeda AI untuk pelanggan ini sampai diaktifkan lagi.</td></tr>
+    <tr><td><span class="pill b">AI diam sementara</span></td><td>Kamu baru membalas dari dashboard, jadi AI diam 1 jam lalu aktif sendiri.</td></tr>
+  </table>
+  <h3>Membaca &amp; membalas chat</h3>
+  <p>Klik nama pelanggan untuk membuka chat. Bubble putih adalah pesan pelanggan. Bubble hijau adalah balasan <b>🤖 AI</b> atau <b>👤 Admin</b>.</p>
+  <figure><img src="img/p15-chat-eskalasi.jpg" alt=""><figcaption><b>Gambar A14.</b> Chat yang diserahkan ke admin.</figcaption></figure>
+  <ol class="steps">
+    <li>Ketik balasan di kotak bawah, lalu tekan <kbd>Enter</kbd> atau tombol kirim. Pakai <kbd>Shift</kbd>+<kbd>Enter</kbd> untuk baris baru.</li>
+    <li>Pesan terkirim ke WhatsApp pelanggan dari nomor toko.</li>
+    <li>Setelah kamu membalas dari dashboard, AI otomatis <b>diam 1 jam</b> untuk chat itu supaya tidak "menyela".</li>
+  </ol>
+  <figure><img src="img/p16-chat-balas-admin.jpg" alt=""><figcaption><b>Gambar A15.</b> Balasan admin terkirim (bubble "👤 Admin").</figcaption></figure>
+  <h3>Tombol Jeda AI / Aktifkan AI lagi</h3>
+  <ul>
+    <li><b>Jeda AI (ambil alih)</b>: AI berhenti membalas pelanggan ini <b>sampai kamu aktifkan lagi</b>.</li>
+    <li><b>Aktifkan AI lagi</b>: AI melayani pelanggan ini lagi dan tanda "Perlu admin" hilang. <b>Jangan lupa</b> menekan tombol ini setelah masalah selesai.</li>
+  </ul>
+  <div class="note info"><b>Format tulisan WhatsApp</b>Tulisan <code>*tebal*</code> dan <code>_miring_</code> tampil tebal/miring di dashboard maupun di WhatsApp pelanggan.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A7</span>Perintah WhatsApp untuk pemilik (#stop / #start)</h2>
+  <p>Kalau kamu membalas pelanggan <b>langsung dari HP</b> (bukan dari dashboard), aplikasi tidak tahu kamu sudah membalas, sehingga AI bisa ikut menjawab. Untuk mencegahnya, kirim perintah dari <b>nomor WA pemilik</b> ke <b>nomor toko</b>:</p>
+  <table>
+    <tr><th style="width:34%">Perintah</th><th>Fungsi</th></tr>
+    <tr><td><code>#stop 08123456789</code></td><td>AI berhenti membalas pelanggan dengan nomor itu. Kamu balas manual dari HP.</td></tr>
+    <tr><td><code>#start 08123456789</code></td><td>AI aktif lagi untuk pelanggan itu.</td></tr>
+    <tr><td><code>#stop semua</code></td><td>Matikan AI untuk <b>semua</b> chat (misalnya saat libur atau stok kosong total).</td></tr>
+    <tr><td><code>#start semua</code></td><td>Nyalakan AI lagi untuk semua chat.</td></tr>
+    <tr><td><code>#status</code></td><td>Cek apakah AI aktif dan berapa chat yang sedang dijeda.</td></tr>
+  </table>
+  <p>Aplikasi membalas setiap perintah, misalnya <i>"⏸️ AI berhenti membalas 628123456789. Silakan balas manual dari HP."</i> Pesan lain dari nomor pemilik (bukan perintah) dibalas dengan daftar perintah. Nomor pemilik <b>tidak pernah</b> dilayani AI sebagai pelanggan.</p>
+  <div class="note warn"><b>Syarat</b>Nomor pemilik harus terisi di Pengaturan dan <b>berbeda</b> dari nomor toko. Nomor pelanggan boleh ditulis dengan awalan <code>08…</code> atau <code>62…</code>.</div>
+  <div class="note info"><b>Pelanggan dengan ID "@lid"</b>WhatsApp sedang memperkenalkan ID pengganti nomor telepon. Pelanggan yang muncul dengan ID seperti <code>123456@lid</code> dijeda lewat tombol <b>Jeda AI</b> di dashboard, karena perintah <code>#stop</code> memakai nomor telepon.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A8</span>Mengelola pesanan</h2>
+  <p>Menu <b>Pesanan</b> berisi semua invoice yang dibuat AI. Gunakan tab di atas untuk menyaring per status.</p>
+  <figure><img src="img/p18-pesanan.jpg" alt=""><figcaption><b>Gambar A16.</b> Daftar pesanan.</figcaption></figure>
+  <h3>Alur status pesanan</h3>
+  <p><span class="pill a">Menunggu pembayaran</span> → <span class="pill b">Dibayar</span> → <span class="pill v">Dikirim</span> → <span class="pill g">Selesai</span>, atau <span class="pill r">Batal</span> kapan saja.</p>
+  <h3>Mengubah status</h3>
+  <ol class="steps">
+    <li>Pilih status baru di kolom <b>Status</b>.</li>
+    <li>(Opsional) isi <b>No. resi / catatan</b>. Isinya ikut dikirim ke pelanggan untuk status Dikirim dan Batal.</li>
+    <li>Biarkan <b>Kabari pelanggan via WA</b> tercentang supaya pelanggan otomatis dapat pesan.</li>
+    <li>Klik <b>Update</b>.</li>
+  </ol>
+  <div class="two">
+    <figure><img src="img/p19-pesanan-dibayar.jpg" alt=""><figcaption><b>Gambar A17.</b> Status diubah ke Dibayar.</figcaption></figure>
+    <figure><img src="img/p20-pesanan-kirim-resi.jpg" alt=""><figcaption><b>Gambar A18.</b> Mengisi resi saat Dikirim.</figcaption></figure>
+  </div>
+  <h3>Pesan otomatis ke pelanggan</h3>
+  <table>
+    <tr><th style="width:22%">Status baru</th><th>Isi pesan</th></tr>
+    <tr><td>Dibayar</td><td>"Terima kasih kak … Pembayaran pesanan <b>INV…</b> sudah kami terima dan segera diproses."</td></tr>
+    <tr><td>Dikirim</td><td>"Pesanan <b>INV…</b> sudah dikirim 🚚" + isi kolom resi.</td></tr>
+    <tr><td>Selesai</td><td>"Pesanan <b>INV…</b> selesai. Terima kasih sudah belanja di …"</td></tr>
+    <tr><td>Batal</td><td>"Pesanan <b>INV…</b> dibatalkan." + keterangan. <b>Stok dikembalikan otomatis.</b></td></tr>
+  </table>
+  <h3>Export CSV</h3>
+  <p>Klik <b>Export CSV</b> (pojok kanan atas) untuk mengunduh pesanan sesuai tab yang aktif. File bisa dibuka di Excel atau Google Sheets untuk rekap omzet dan pengiriman.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A9</span>Dashboard</h2>
+  <figure><img src="img/p17-dashboard.jpg" alt=""><figcaption><b>Gambar A19.</b> Dashboard pedagang.</figcaption></figure>
+  <table>
+    <tr><th style="width:30%">Bagian</th><th>Isi</th></tr>
+    <tr><td>Kartu hijau di atas</td><td>Sapaan, nama toko, jumlah chat yang menunggu, status WhatsApp, dan status AI.</td></tr>
+    <tr><td>Pesanan hari ini</td><td>Jumlah invoice yang dibuat hari ini.</td></tr>
+    <tr><td>Omzet dibayar (30 hari)</td><td>Total pesanan berstatus Dibayar, Dikirim, dan Selesai dalam 30 hari terakhir.</td></tr>
+    <tr><td>Menunggu bayar</td><td>Pesanan yang belum dibayar.</td></tr>
+    <tr><td>Perlu admin</td><td>Chat yang diserahkan AI ke kamu. Berbingkai oranye kalau lebih dari 0.</td></tr>
+    <tr><td>Pesanan &amp; chat terbaru</td><td>5 terakhir. Klik untuk membuka detailnya.</td></tr>
+  </table>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A10</span>Pengingat pembayaran otomatis</h2>
+  <p>Pesanan yang masih <span class="pill a">Menunggu pembayaran</span> akan diingatkan otomatis lewat WhatsApp:</p>
+  <ul>
+    <li>pengingat pertama ±6 jam setelah pesanan dibuat;</li>
+    <li>pengingat kedua ±6 jam setelah pengingat pertama;</li>
+    <li>maksimal 2 kali, lalu berhenti. Jeda dan jumlahnya diatur owner platform.</li>
+  </ul>
+  <p>Isi pengingat: nama toko, kode invoice, total, cara pembayaran, dan permintaan bukti transfer. Pengingat berhenti setelah status diubah ke Dibayar atau Batal.</p>
+  <div class="note tip"><b>Saran</b>Segera ubah status ke <b>Dibayar</b> setelah dana masuk, supaya pelanggan tidak menerima pengingat yang tidak perlu.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A11</span>Memakai di HP</h2>
+  <p>Dashboard bisa dipakai penuh dari browser HP. Menu ada di bagian atas dan bisa digeser ke samping. Tambahkan ke layar utama (Chrome: <b>⋮ → Tambahkan ke layar utama</b>; Safari: <b>Bagikan → Tambah ke Layar Utama</b>) supaya terasa seperti aplikasi.</p>
+  <div style="text-align:center">
+    <figure class="phone"><img src="img/m02-dashboard.jpg" alt=""><figcaption><b>A20.</b> Dashboard di HP</figcaption></figure>
+    <figure class="phone"><img src="img/m03-chat.jpg" alt=""><figcaption><b>A21.</b> Chat di HP</figcaption></figure>
+    <figure class="phone"><img src="img/m04-pesanan.jpg" alt=""><figcaption><b>A22.</b> Pesanan di HP</figcaption></figure>
+  </div>
+  <p>Tampilan otomatis berubah ke <b>mode gelap</b> kalau HP atau laptopmu memakai mode gelap.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">A12</span>Tanya jawab &amp; masalah umum (pedagang)</h2>
+  <h4>AI tidak membalas sama sekali.</h4>
+  <ul>
+    <li>Cek status WhatsApp di Dashboard. Kalau "terputus", sambungkan lagi (A4).</li>
+    <li>Cek sakelar <b>AI auto-reply aktif</b> di Pengaturan, atau kirim <code>#status</code> dari nomor pemilik.</li>
+    <li>Cek apakah chat itu berstatus <b>AI dijeda</b> atau <b>Perlu admin</b>.</li>
+    <li>Kalau muncul banner merah "Akun toko ini sedang nonaktif", hubungi owner platform (misalnya soal langganan).</li>
+  </ul>
+  <h4>AI salah menyebut harga atau ongkir.</h4>
+  <p>Perbarui harga di <b>Produk</b> dan ongkir di <b>Info toko</b>. AI selalu memakai data terbaru untuk chat berikutnya.</p>
+  <h4>AI terlalu sering menyerahkan chat ke saya.</h4>
+  <p>Lengkapi Info toko dengan jawaban atas pertanyaan yang sering muncul (ongkir luar kota, COD, retur, dll).</p>
+  <h4>Saya membalas dari HP, tapi AI ikut membalas.</h4>
+  <p>Kirim <code>#stop nomor-pelanggan</code> dari nomor pemilik sebelum membalas (A7), atau balas dari dashboard supaya AI diam otomatis 1 jam.</p>
+  <h4>Nomor toko mau diganti.</h4>
+  <p>Kolom nomor terkunci setelah tersambung. Hubungi owner platform untuk memindahkan device ke nomor baru.</p>
+  <h4>Apakah WhatsApp di HP masih bisa dipakai?</h4>
+  <p>Bisa. WA Admin AI hanya terhubung sebagai "perangkat tertaut", sama seperti WhatsApp Web.</p>
+  <h4>Apakah aman dari blokir WhatsApp?</h4>
+  <p>Layanan ini memakai koneksi tidak resmi (bukan WhatsApp Business API dari Meta), jadi selalu ada risiko. Kurangi risikonya dengan <b>tidak</b> mengirim pesan massal/spam, tidak mengirim ke nomor yang tidak pernah chat, dan memakai nomor yang sudah lama aktif.</p>
+</section>
+
+<!-- ============================== PART B ============================== -->
+<section class="part">
+  <div class="k">Bagian B</div>
+  <h1>Panduan Owner Platform</h1>
+  <p class="lead">Untuk kamu yang menjalankan layanan WA Admin AI: memasang aplikasi, menyediakan akun Fonnte &amp; AI, dan mengelola semua toko pelanggan.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B1</span>Gambaran sistem</h2>
+  <table>
+    <tr><th style="width:26%">Komponen</th><th>Peran</th></tr>
+    <tr><td><b>Aplikasi WA Admin AI</b></td><td>Server Node.js + database SQLite. Melayani dashboard, menerima webhook Fonnte, dan memanggil AI.</td></tr>
+    <tr><td><b>Fonnte</b> (akun milik platform)</td><td>Penghubung WhatsApp. Setiap toko = 1 <b>device</b> di akun Fonnte platform. Fonnte meneruskan chat masuk ke webhook aplikasi dan mengirim balasan.</td></tr>
+    <tr><td><b>Claude (Anthropic)</b></td><td>AI yang menyusun balasan, membuat pesanan, dan memutuskan kapan menyerahkan ke admin.</td></tr>
+    <tr><td><b>Railway</b> (atau server lain)</td><td>Tempat aplikasi berjalan 24 jam, dengan Volume untuk file database.</td></tr>
+  </table>
+  <p><b>Alur pesan:</b> Pelanggan → WhatsApp toko → Fonnte → <code>POST /webhook/&lt;kunci-toko&gt;</code> → aplikasi (simpan chat, tanya Claude) → kirim balasan lewat API Fonnte → pelanggan.</p>
+  <p><b>Model layanan:</b> pedagang <b>tidak</b> perlu akun Fonnte. Semua device ada di akun Fonnte milikmu, dan biayanya dimasukkan ke harga langganan.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B2</span>Deploy ke Railway</h2>
+  <ol class="steps">
+    <li>Di Railway: <b>New Project → Deploy from GitHub repo</b>, pilih <code>adnannasution/wa-admin-ai</code>. File <code>railway.json</code> sudah mengatur perintah start (<code>npm start</code>) dan healthcheck <code>/health</code>.</li>
+    <li>Buka service → <b>Volumes</b> → tambah Volume dengan mount path <code>/app/data</code>.</li>
+    <li>Buka <b>Variables</b>, isi variabel di bab B3. Minimal: <code>SESSION_SECRET</code>, <code>ANTHROPIC_API_KEY</code>, <code>PUBLIC_URL</code>, <code>SUPERADMIN_EMAILS</code>, <code>DATABASE_PATH=/app/data/app.db</code>, <code>NODE_ENV=production</code>.</li>
+    <li>Buka <b>Settings → Networking → Generate Domain</b>. Salin domainnya ke <code>PUBLIC_URL</code> (contoh <code>https://wa-admin-ai.up.railway.app</code>), lalu redeploy.</li>
+    <li>Buka <code>https://domainmu/health</code>. Kalau muncul <code>{"ok":true}</code>, aplikasi berjalan.</li>
+  </ol>
+  <div class="note danger"><b>Wajib pasang Volume</b>Database berupa file SQLite. Tanpa Volume, file itu <b>terhapus setiap redeploy</b>, sehingga semua toko, chat, dan pesanan hilang.</div>
+  <div class="note info"><b>Database otomatis</b>Tabel dibuat otomatis saat aplikasi pertama kali jalan, dan kolom baru ditambahkan otomatis saat update. Tidak perlu menjalankan perintah migrate. Database awal kosong, karena akun dibuat lewat halaman daftar.</div>
+  <p><b>Menjalankan di komputer sendiri</b> (untuk uji coba): Node.js ≥ 22.13, lalu <code>cp .env.example .env</code>, isi variabel, jalankan <code>npm install</code> dan <code>npm run dev</code>. Webhook Fonnte butuh URL publik, jadi pakai tunnel seperti <code>cloudflared tunnel --url http://localhost:3000</code>.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B3</span>Variabel lingkungan</h2>
+  <table>
+    <tr><th style="width:30%">Variabel</th><th style="width:12%">Wajib?</th><th>Keterangan</th></tr>
+    <tr><td><code>SESSION_SECRET</code></td><td>Ya</td><td>Teks acak minimal 16 karakter untuk mengamankan login. Jangan diganti setelah live, karena semua orang akan ter-logout.</td></tr>
+    <tr><td><code>ANTHROPIC_API_KEY</code></td><td>Ya</td><td>API key Claude dari console Anthropic.</td></tr>
+    <tr><td><code>PUBLIC_URL</code></td><td>Ya</td><td>Alamat publik aplikasi, dipakai untuk membuat URL webhook Fonnte.</td></tr>
+    <tr><td><code>SUPERADMIN_EMAILS</code></td><td>Ya</td><td>Email (pisahkan dengan koma) yang mendapat menu <b>Admin Platform</b>.</td></tr>
+    <tr><td><code>DATABASE_PATH</code></td><td>Ya*</td><td>Lokasi file database. Di Railway: <code>/app/data/app.db</code>. Default <code>./data/app.db</code>.</td></tr>
+    <tr><td><code>FONNTE_ACCOUNT_TOKEN</code></td><td>Disarankan</td><td>Token <b>akun</b> Fonnte (menu Setting di fonnte.com, <b>bukan</b> token device). Kalau diisi, pedagang bisa menyambungkan WA sendiri. Kalau kosong, kamu menyambungkan secara manual (B5).</td></tr>
+    <tr><td><code>CLAUDE_MODEL</code></td><td>Tidak</td><td>Default <code>claude-opus-5-5</code>. Untuk biaya lebih rendah coba <code>claude-haiku-5-5</code>, setelah menguji kualitasnya.</td></tr>
+    <tr><td><code>CLAUDE_EFFORT</code></td><td>Tidak</td><td>Tingkat "berpikir" AI: <code>low</code> (default), <code>medium</code>, <code>high</code>. Makin tinggi, makin lambat dan mahal.</td></tr>
+    <tr><td><code>AI_PAUSE_MINUTES</code></td><td>Tidak</td><td>Lama AI diam setelah admin membalas dari dashboard. Default 60.</td></tr>
+    <tr><td><code>REMINDER_HOURS</code> / <code>REMINDER_MAX</code></td><td>Tidak</td><td>Jeda pengingat bayar (default 6 jam) dan jumlah maksimal (default 2).</td></tr>
+    <tr><td><code>NODE_ENV</code></td><td>Disarankan</td><td>Isi <code>production</code> supaya cookie login hanya dikirim lewat HTTPS.</td></tr>
+    <tr><td><code>FONNTE_DRY_RUN</code></td><td>Tidak</td><td>Isi <code>1</code> untuk uji coba. Pesan hanya dicetak di log dan tidak benar-benar dikirim.</td></tr>
+  </table>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B4</span>Akun owner &amp; panel Admin Platform</h2>
+  <ol class="steps">
+    <li>Pastikan emailmu tercantum di <code>SUPERADMIN_EMAILS</code>.</li>
+    <li>Buka <code>/register</code> dan daftar dengan email itu.</li>
+    <li>Sidebar menampilkan menu tambahan <b>Admin Platform</b>.</li>
+  </ol>
+  <figure class="half"><img src="img/o01-daftar-owner.jpg" alt=""><figcaption><b>Gambar B1.</b> Mendaftar sebagai owner.</figcaption></figure>
+  <figure><img src="img/o02-admin-daftar.jpg" alt=""><figcaption><b>Gambar B2.</b> Panel Admin Platform: ringkasan dan daftar semua toko.</figcaption></figure>
+  <table>
+    <tr><th style="width:26%">Kolom</th><th>Arti</th></tr>
+    <tr><td>Fonnte</td><td><span class="pill a">Belum</span> = belum ada device; <span class="pill b">Device siap</span> = device dibuat, menunggu scan; <span class="pill g">✅ Tersambung</span> = WhatsApp aktif.</td></tr>
+    <tr><td>Status</td><td><span class="pill g">Aktif</span> atau <span class="pill r">Nonaktif</span> (ditangguhkan).</td></tr>
+    <tr><td>Pesanan 30h / Balasan AI 30h</td><td>Aktivitas 30 hari terakhir. Balasan AI kira-kira sebanding dengan biaya AI toko itu.</td></tr>
+    <tr><td>Chat terakhir</td><td>Kapan pelanggan terakhir chat. Toko yang lama sepi bisa jadi WA-nya terputus.</td></tr>
+  </table>
+  <p>Kartu <b>Menunggu disambungkan</b> berbingkai oranye kalau ada toko baru yang belum punya device.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B5</span>Menyambungkan WhatsApp toko</h2>
+  <h3>Cara otomatis (disarankan, butuh <code>FONNTE_ACCOUNT_TOKEN</code>)</h3>
+  <p>Pedagang bisa melakukannya sendiri dari menu WhatsApp (bab A4). Kamu juga bisa memulainya dari panel admin:</p>
+  <ol class="steps">
+    <li>Klik nama toko di panel Admin Platform.</li>
+    <li>Klik <b>Buat device otomatis</b>. Aplikasi membuat device di akun Fonnte-mu, menyimpan token device, dan mengatur webhook, webhook connect, autoread ON, personal ON, dan group OFF.</li>
+    <li>Minta pedagang membuka menu <b>WhatsApp</b> dan men-scan QR.</li>
+  </ol>
+  <div class="two">
+    <figure><img src="img/o03-admin-toko-baru.jpg" alt=""><figcaption><b>Gambar B3.</b> Toko baru, belum ada device.</figcaption></figure>
+    <figure><img src="img/o04-admin-device-dibuat.jpg" alt=""><figcaption><b>Gambar B4.</b> Device dibuat. Paket, kuota, dan masa berlaku tampil.</figcaption></figure>
+  </div>
+  <p>Tombol <b>Atur ulang webhook device</b> dipakai kalau domain aplikasi berubah atau webhook tidak berjalan.</p>
+  <h3>Cara manual (tanpa token akun)</h3>
+  <ol class="steps">
+    <li>Login ke fonnte.com → <b>Add device</b> dengan nomor toko.</li>
+    <li>Edit device: <b>Autoread ON</b> (wajib, tanpa ini webhook tidak jalan), personal ON, group OFF.</li>
+    <li>Isi <b>Webhook</b> dan <b>Webhook connect</b> dengan URL yang tertera di halaman toko.</li>
+    <li>Salin <b>token device</b> ke kolom token di halaman toko, lalu klik <b>Simpan</b>.</li>
+    <li>Pedagang men-scan QR dari menu WhatsApp di dashboard-nya.</li>
+  </ol>
+  <figure><img src="img/o05-admin-langkah-manual.jpg" alt=""><figcaption><b>Gambar B5.</b> Langkah manual beserta URL webhook toko.</figcaption></figure>
+  <div class="note warn"><b>Paket Fonnte</b>Satu akun Fonnte hanya bisa menyambungkan <b>1 device gratis</b>. Setiap toko berikutnya butuh <b>paket berbayar per device</b>, yang dibeli dari dashboard Fonnte. Kalau muncul pesan "Kuota device gratis Fonnte platform penuh", belikan paket untuk device toko itu dulu.</div>
+  <div class="note danger"><b>Rahasiakan URL webhook &amp; token</b>URL webhook berisi kunci acak per toko. Siapa pun yang tahu URL itu bisa mengirim pesan palsu ke sistem. Token device tidak pernah ditampilkan ke pedagang.</div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B6</span>Tes koneksi &amp; menangguhkan toko</h2>
+  <h3>Tes kirim WA</h3>
+  <p>Di halaman toko, klik <b>Tes kirim WA</b>. Aplikasi mengirim pesan uji dari nomor toko ke nomor pemilik. Kalau gagal, notifikasi menampilkan alasannya (token tidak valid, device terputus, dan sebagainya).</p>
+  <figure><img src="img/o06-admin-tes-kirim.jpg" alt=""><figcaption><b>Gambar B6.</b> Hasil tes kirim WA.</figcaption></figure>
+  <h3>Menangguhkan toko</h3>
+  <p>Kalau pedagang belum membayar langganan, matikan sakelar <b>Akun aktif</b> lalu klik <b>Simpan</b>. Akibatnya:</p>
+  <ul>
+    <li>AI berhenti membalas chat toko itu dan pengingat bayar berhenti;</li>
+    <li>pedagang tetap bisa login, tapi melihat banner merah "Akun toko ini sedang nonaktif";</li>
+    <li>data toko tidak dihapus. Nyalakan sakelar lagi untuk mengaktifkan kembali.</li>
+  </ul>
+  <figure><img src="img/o07-admin-toko-nonaktif.jpg" alt=""><figcaption><b>Gambar B7.</b> Toko berstatus Nonaktif.</figcaption></figure>
+  <p>Centang <b>Hapus token (putuskan WA)</b> hanya kalau device toko memang mau dilepas, misalnya pindah nomor. Setelah itu buat device baru.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B7</span>Biaya &amp; paket</h2>
+  <table>
+    <tr><th style="width:24%">Biaya</th><th>Ditanggung</th><th>Catatan</th></tr>
+    <tr><td>Paket Fonnte per device</td><td>Platform</td><td>1 toko = 1 device = 1 paket. Masukkan ke harga langganan.</td></tr>
+    <tr><td>AI (Claude)</td><td>Platform</td><td>Dihitung per token. Perkiraan kasar: model Opus ±Rp100–400 per balasan, Haiku ±Rp5–20 per balasan. Pantau tagihan di console Anthropic.</td></tr>
+    <tr><td>Server (Railway)</td><td>Platform</td><td>Satu server untuk semua toko.</td></tr>
+  </table>
+  <div class="note tip"><b>Menekan biaya AI</b>
+    <ul style="margin:4pt 0 0">
+      <li>Coba <code>CLAUDE_MODEL=claude-haiku-5-5</code> untuk paket murah. Uji dulu dengan chat sungguhan.</li>
+      <li>Biarkan <code>CLAUDE_EFFORT=low</code> untuk chat toko.</li>
+      <li>Info toko dan katalog sudah di-cache, sehingga chat berikutnya lebih murah.</li>
+      <li>Kolom <b>Balasan AI 30h</b> di panel admin membantu menghitung biaya per toko.</li>
+    </ul></div>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B8</span>Database, backup &amp; update aplikasi</h2>
+  <h3>Update aplikasi</h3>
+  <p>Setiap ada commit baru di branch <code>main</code>, Railway melakukan deploy ulang otomatis. Tabel atau kolom baru ditambahkan otomatis saat start. Data lama tetap aman <b>selama Volume terpasang</b>.</p>
+  <h3>Backup</h3>
+  <ul>
+    <li>File yang perlu di-backup: <code>/app/data/app.db</code> (beserta <code>app.db-wal</code> jika ada).</li>
+    <li>Gunakan fitur backup Volume di Railway, atau unduh file secara berkala.</li>
+    <li>Lakukan backup sebelum update besar.</li>
+  </ul>
+  <h3>Riwayat chat</h3>
+  <p>Chat disimpan di database aplikasi. AI hanya membaca 20 pesan terakhir per pelanggan saat menyusun balasan.</p>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B9</span>Keamanan</h2>
+  <ul>
+    <li>Password pedagang disimpan dalam bentuk hash (scrypt). Login memakai cookie bertanda tangan yang berlaku 30 hari.</li>
+    <li>Isi <code>NODE_ENV=production</code> supaya cookie hanya dikirim lewat HTTPS.</li>
+    <li>Simpan <code>ANTHROPIC_API_KEY</code>, <code>FONNTE_ACCOUNT_TOKEN</code>, dan <code>SESSION_SECRET</code> hanya di Variables Railway. Jangan di-commit ke GitHub.</li>
+    <li>Batasi <code>SUPERADMIN_EMAILS</code> hanya untuk orang yang benar-benar mengelola platform.</li>
+    <li>Jangan pakai layanan ini untuk broadcast massal. Selain melanggar kebijakan WhatsApp, nomor toko bisa diblokir.</li>
+  </ul>
+</section>
+
+<section class="chapter">
+  <h2><span class="num">B10</span>Masalah umum (owner)</h2>
+  <table>
+    <tr><th style="width:34%">Gejala</th><th>Penyebab &amp; solusi</th></tr>
+    <tr><td>Chat masuk tapi tidak tercatat di dashboard</td><td>Webhook Fonnte belum diisi atau <b>Autoread OFF</b>. Klik <b>Atur ulang webhook device</b>, atau cek di fonnte.com.</td></tr>
+    <tr><td>Chat tercatat tapi AI tidak membalas</td><td>Cek log Railway untuk pesan "AI error". Biasanya <code>ANTHROPIC_API_KEY</code> salah atau saldo habis. Cek juga apakah toko nonaktif atau AI-nya dimatikan.</td></tr>
+    <tr><td>Semua toko ter-logout setelah deploy</td><td><code>SESSION_SECRET</code> berubah. Jangan ganti nilainya.</td></tr>
+    <tr><td>Data hilang setelah deploy</td><td>Volume belum terpasang atau <code>DATABASE_PATH</code> salah (B2).</td></tr>
+    <tr><td>"Kuota device gratis Fonnte platform penuh"</td><td>Beli paket untuk device di fonnte.com.</td></tr>
+    <tr><td>"Nomor ini sudah terdaftar di Fonnte"</td><td>Nomor itu sudah menjadi device di akun Fonnte lain. Minta pemiliknya menghapus device itu, atau sambungkan manual.</td></tr>
+    <tr><td>QR tidak muncul / "Token Fonnte tidak valid"</td><td>Token device salah atau device sudah dihapus. Hapus token di halaman toko, lalu buat device baru.</td></tr>
+    <tr><td>Status WA sering "terputus"</td><td>HP toko lama offline atau perangkat tertaut dihapus. Minta pedagang menyambungkan ulang dari menu WhatsApp.</td></tr>
+  </table>
+</section>
+
+<!-- ============================== APPENDIX ============================== -->
+<section class="chapter">
+  <h2>Lampiran</h2>
+  <h3>Status pesanan</h3>
+  <table>
+    <tr><th>Status</th><th>Kapan dipakai</th><th>Pengingat bayar</th></tr>
+    <tr><td><span class="pill a">Menunggu pembayaran</span></td><td>Otomatis saat AI membuat invoice.</td><td>Ya (maks. 2×)</td></tr>
+    <tr><td><span class="pill b">Dibayar</span></td><td>Dana sudah masuk.</td><td>Tidak</td></tr>
+    <tr><td><span class="pill v">Dikirim</span></td><td>Barang dikirim (isi resi).</td><td>Tidak</td></tr>
+    <tr><td><span class="pill g">Selesai</span></td><td>Barang diterima.</td><td>Tidak</td></tr>
+    <tr><td><span class="pill r">Batal</span></td><td>Pesanan batal. Stok dikembalikan.</td><td>Tidak</td></tr>
+  </table>
+  <h3>Ringkasan perintah pemilik (dikirim ke nomor toko)</h3>
+  <p><code>#stop 08xx</code> · <code>#start 08xx</code> · <code>#stop semua</code> · <code>#start semua</code> · <code>#status</code></p>
+  <h3>Glosarium</h3>
+  <table>
+    <tr><th style="width:26%">Istilah</th><th>Arti</th></tr>
+    <tr><td>Device</td><td>Satu nomor WhatsApp yang tertaut di akun Fonnte.</td></tr>
+    <tr><td>Perangkat tertaut</td><td>Fitur WhatsApp untuk memakai akun di perangkat lain (seperti WhatsApp Web).</td></tr>
+    <tr><td>Webhook</td><td>Alamat yang dipanggil Fonnte setiap ada chat masuk atau perubahan status sambungan.</td></tr>
+    <tr><td>Token device / token akun</td><td>Kunci rahasia Fonnte. Token device untuk satu nomor, token akun untuk mengelola semua device.</td></tr>
+    <tr><td>Eskalasi / Perlu admin</td><td>AI menyerahkan chat ke manusia.</td></tr>
+    <tr><td>Super admin / owner</td><td>Akun yang emailnya ada di <code>SUPERADMIN_EMAILS</code>.</td></tr>
+  </table>
+  <p style="margin-top:20pt;color:var(--muted);font-size:9pt">Manual ini dibuat dari aplikasi WA Admin AI versi 1.0. Screenshot memakai data contoh.</p>
+</section>
+
+</div>
+</body>
+</html>
