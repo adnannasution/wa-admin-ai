@@ -115,7 +115,16 @@ export function createApp(db, deps = {}) {
       unpaid: one("SELECT count(*) FROM orders WHERE tenant_id = ? AND status = 'menunggu_bayar'", t.id),
       attention: one("SELECT count(*) FROM contacts WHERE tenant_id = ? AND needs_attention = 1", t.id),
     };
-    res.send(V.dashboardPage(t, stats, flash(req)));
+    const recent = {
+      orders: db.prepare("SELECT code, customer_name, total, status, created_at FROM orders WHERE tenant_id = ? ORDER BY id DESC LIMIT 5").all(t.id),
+      chats: db
+        .prepare(
+          `SELECT c.*, (SELECT content FROM messages m WHERE m.contact_id = c.id ORDER BY id DESC LIMIT 1) AS last_text
+             FROM contacts c WHERE c.tenant_id = ? ORDER BY c.needs_attention DESC, c.last_message_at DESC LIMIT 5`
+        )
+        .all(t.id),
+    };
+    res.send(V.dashboardPage(t, stats, flash(req), recent));
   });
 
   // ---------- settings ----------
