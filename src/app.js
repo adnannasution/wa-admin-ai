@@ -1,6 +1,6 @@
 import express from "express";
 import crypto from "node:crypto";
-import { ORDER_STATUSES, addMessage, restockOrder } from "./db.js";
+import { ORDER_STATUSES, addMessage, restockOrder, pauseAiFor } from "./db.js";
 import { hashPassword, verifyPassword, makeSessionCookie, readSession, cookieOptions } from "./auth.js";
 import { handleIncoming } from "./bot.js";
 import { normalizePhone, rupiah, sendWhatsApp } from "./fonnte.js";
@@ -12,6 +12,14 @@ const STATUS_MESSAGES = {
   selesai: (o) => `Pesanan *${o.code}* selesai. Terima kasih sudah belanja di ${o.store} 😊`,
   batal: (o, s, info) => `Pesanan *${o.code}* dibatalkan.${info ? `\nKeterangan: ${info}` : ""}`,
 };
+
+export const isSuperAdmin = (tenant) =>
+  !!tenant &&
+  (process.env.SUPERADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(tenant.email);
 
 export function createApp(db, deps = {}) {
   const send = deps.send || sendWhatsApp;
@@ -38,9 +46,11 @@ export function createApp(db, deps = {}) {
   app.use((req, res, next) => {
     const id = readSession(req.headers.cookie);
     req.tenant = id ? db.prepare("SELECT * FROM tenants WHERE id = ?").get(id) : null;
+    if (req.tenant) req.tenant.is_super = isSuperAdmin(req.tenant);
     next();
   });
   const auth = (req, res, next) => (req.tenant ? next() : res.redirect("/login"));
+  const superOnly = (req, res, next) => (req.tenant?.is_super ? next() : res.status(404).send("Not found"));
   const flash = (req) => (req.query.ok ? String(req.query.ok) : undefined);
 
   app.get("/", (req, res) => res.redirect(req.tenant ? "/dashboard" : "/login"));
@@ -56,7 +66,7 @@ export function createApp(db, deps = {}) {
         .prepare("INSERT INTO tenants (name, email, password_hash, webhook_key) VALUES (?, ?, ?, ?)")
         .run(name.trim(), email.trim().toLowerCase(), hashPassword(password), crypto.randomBytes(18).toString("base64url"));
       res.cookie("sid", makeSessionCookie(r.lastInsertRowid), cookieOptions());
-      res.redirect("/pengaturan?ok=Akun dibuat. Isi token Fonnte dan info toko dulu ya.");
+      res.redirect("/pengaturan?ok=Akun dibuat! Isi nomor WhatsApp toko, info toko, dan cara bayar. Tim kami akan menghubungi untuk menyambungkan WA.");
     } catch {
       res.status(400).send(V.authPage("register", "Email sudah terdaftar."));
     }
@@ -88,7 +98,7 @@ export function createApp(db, deps = {}) {
       unpaid: one("SELECT count(*) FROM orders WHERE tenant_id = ? AND status = 'menunggu_bayar'", t.id),
       attention: one("SELECT count(*) FROM contacts WHERE tenant_id = ? AND needs_attention = 1", t.id),
     };
-    res.send(V.dashboardPage(t, stats, `${baseUrl(req)}/webhook/${t.webhook_key}`, flash(req)));
+    res.send(V.dashboardPage(t, stats, flash(req)));
   });
 
   // ---------- settings ----------
@@ -96,10 +106,10 @@ export function createApp(db, deps = {}) {
   app.post("/pengaturan", auth, (req, res) => {
     const b = req.body;
     db.prepare(
-      "UPDATE tenants SET name = ?, fonnte_token = ?, owner_phone = ?, store_info = ?, payment_info = ?, ai_enabled = ? WHERE id = ?"
+      "UPDATE tenants SET name = ?, wa_number = ?, owner_phone = ?, store_info = ?, payment_info = ?, ai_enabled = ? WHERE id = ?"
     ).run(
       String(b.name || req.tenant.name).trim(),
-      String(b.fonnte_token || "").trim(),
+      normalizePhone(b.wa_number),
       normalizePhone(b.owner_phone),
       String(b.store_info || ""),
       String(b.payment_info || ""),
@@ -232,11 +242,9 @@ export function createApp(db, deps = {}) {
     const c = getContact(req);
     if (!c) return res.redirect("/percakapan");
     const paused = req.body.paused === "1" ? 1 : 0;
-    db.prepare("UPDATE contacts SET ai_paused = ?, needs_attention = CASE WHEN ? = 0 THEN 0 ELSE needs_attention END WHERE id = ?").run(
-      paused,
-      paused,
-      c.id
-    );
+    db.prepare(
+      "UPDATE contacts SET ai_paused = ?, ai_paused_until = NULL, needs_attention = CASE WHEN ? = 0 THEN 0 ELSE needs_attention END WHERE id = ?"
+    ).run(paused, paused, c.id);
     res.redirect(`/percakapan/${c.id}`);
   });
 
@@ -247,11 +255,65 @@ export function createApp(db, deps = {}) {
     try {
       await send(req.tenant.fonnte_token, c.phone, text);
       addMessage(db, req.tenant.id, c.id, "admin", text);
-      db.prepare("UPDATE contacts SET ai_paused = 1, needs_attention = 0 WHERE id = ?").run(c.id);
+      // Admin took over: keep the AI quiet for a while so it doesn't talk over the human.
+      db.prepare("UPDATE contacts SET needs_attention = 0 WHERE id = ?").run(c.id);
+      if (!c.ai_paused) pauseAiFor(db, c.id, Number(process.env.AI_PAUSE_MINUTES || 60));
       res.redirect(`/percakapan/${c.id}`);
     } catch (e) {
       res.redirect(`/percakapan/${c.id}?ok=${encodeURIComponent(e.message)}`);
     }
+  });
+
+  // ---------- platform admin (SUPERADMIN_EMAILS) ----------
+  app.get("/admin", auth, superOnly, (req, res) => {
+    const shops = db
+      .prepare(
+        `SELECT t.*,
+           (SELECT count(*) FROM orders o WHERE o.tenant_id = t.id AND o.created_at >= datetime('now','-30 days')) AS orders30,
+           (SELECT count(*) FROM messages m WHERE m.tenant_id = t.id AND m.role = 'assistant' AND m.created_at >= datetime('now','-30 days')) AS ai30,
+           (SELECT max(created_at) FROM messages m WHERE m.tenant_id = t.id AND m.role = 'user') AS last_in
+         FROM tenants t ORDER BY (t.fonnte_token = '') DESC, t.id DESC`
+      )
+      .all()
+      .filter((t) => !isSuperAdmin(t)); // platform admin accounts are not shops
+    res.send(V.adminShopsPage(req.tenant, shops, flash(req)));
+  });
+
+  const getShop = (req) => db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.params.id);
+
+  app.get("/admin/toko/:id", auth, superOnly, (req, res) => {
+    const shop = getShop(req);
+    if (!shop) return res.redirect("/admin");
+    res.send(V.adminShopPage(req.tenant, shop, `${baseUrl(req)}/webhook/${shop.webhook_key}`, flash(req)));
+  });
+
+  app.post("/admin/toko/:id", auth, superOnly, (req, res) => {
+    const shop = getShop(req);
+    if (!shop) return res.redirect("/admin");
+    const b = req.body;
+    const token = b.clear_token ? "" : String(b.fonnte_token || "").trim() || shop.fonnte_token; // blank = keep
+    db.prepare("UPDATE tenants SET wa_number = ?, fonnte_token = ?, active = ? WHERE id = ?").run(
+      normalizePhone(b.wa_number),
+      token,
+      b.active ? 1 : 0,
+      shop.id
+    );
+    res.redirect(`/admin/toko/${shop.id}?ok=Tersimpan`);
+  });
+
+  app.post("/admin/toko/:id/tes", auth, superOnly, async (req, res) => {
+    const shop = getShop(req);
+    if (!shop) return res.redirect("/admin");
+    const target = shop.owner_phone || normalizePhone(req.body.target);
+    let msg;
+    try {
+      if (!target) throw new Error("Nomor pemilik toko belum diisi.");
+      await send(shop.fonnte_token, target, `✅ Tes koneksi WA Admin AI untuk ${shop.name} berhasil.`);
+      msg = `Pesan tes terkirim ke ${target}`;
+    } catch (e) {
+      msg = `Gagal: ${e.message}`;
+    }
+    res.redirect(`/admin/toko/${shop.id}?ok=${encodeURIComponent(msg)}`);
   });
 
   return app;

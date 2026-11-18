@@ -1,8 +1,20 @@
-import { ORDER_STATUSES } from "./db.js";
+import { ORDER_STATUSES, isAiPaused } from "./db.js";
 import { rupiah } from "./fonnte.js";
 
 export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+/** Escapes text, then renders WhatsApp *bold* and _italic_. */
+export const waFormat = (s) =>
+  esc(s)
+    .replace(/(^|[\s(])\*([^*\n]+)\*/g, "$1<b>$2</b>")
+    .replace(/(^|[\s(])_([^_\n]+)_/g, "$1<i>$2</i>");
+
+const OWNER_HELP_HTML = `<ul>
+  <li><code>#stop 0812xxxx</code> — AI berhenti membalas pelanggan itu (kamu balas manual dari HP)</li>
+  <li><code>#start 0812xxxx</code> — AI aktif lagi untuk pelanggan itu</li>
+  <li><code>#stop semua</code> / <code>#start semua</code> — matikan / nyalakan AI untuk semua chat</li>
+  <li><code>#status</code> — cek status AI</li></ul>`;
 
 const CSS = `
 :root{--bg:#f6f7f9;--card:#fff;--text:#1d2329;--muted:#66707a;--line:#e3e6ea;--brand:#128c4a;--warn:#b45309}
@@ -29,9 +41,9 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;word-break:break-all
 
 export function layout(title, body, { tenant, flash } = {}) {
   const nav = tenant
-    ? `<header><b>WA Admin AI</b><a href="/dashboard">Dashboard</a><a href="/percakapan">Percakapan</a><a href="/pesanan">Pesanan</a><a href="/produk">Produk</a><a href="/pengaturan">Pengaturan</a><form method="post" action="/logout" style="margin-left:auto"><button class="secondary">Keluar</button></form></header>`
+    ? `<header><b>WA Admin AI</b><a href="/dashboard">Dashboard</a><a href="/percakapan">Percakapan</a><a href="/pesanan">Pesanan</a><a href="/produk">Produk</a><a href="/pengaturan">Pengaturan</a>${tenant.is_super ? '<a href="/admin"><b>Admin Platform</b></a>' : ""}<form method="post" action="/logout" style="margin-left:auto"><button class="secondary">Keluar</button></form></header>`
     : `<header><b>WA Admin AI</b></header>`;
-  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body>${nav}<main>${flash ? `<div class="flash">${esc(flash)}</div>` : ""}${body}</main></body></html>`;
+  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body>${nav}<main>${tenant && !tenant.active ? '<div class="flash">⛔ Akun toko ini sedang nonaktif, jadi AI tidak membalas chat. Hubungi admin WA Admin AI.</div>' : ""}${flash ? `<div class="flash">${esc(flash)}</div>` : ""}${body}</main></body></html>`;
 }
 
 export function authPage(mode, error) {
@@ -52,7 +64,14 @@ export function authPage(mode, error) {
   );
 }
 
-export function dashboardPage(tenant, stats, webhookUrl, flash) {
+export function waStatusHtml(tenant) {
+  if (tenant.fonnte_token) return `✅ WhatsApp tersambung${tenant.wa_number ? ` (${esc(tenant.wa_number)})` : ""}`;
+  if (!tenant.wa_number)
+    return `<span class="warn">⏳ Belum tersambung.</span> Isi <b>nomor WhatsApp toko</b> di <a href="/pengaturan">Pengaturan</a>, lalu tim kami akan menghubungi kamu untuk scan QR (cukup sekali, seperti WhatsApp Web).`;
+  return `<span class="warn">⏳ Menunggu disambungkan.</span> Tim kami akan mengirim QR ke nomor pemilik untuk di-scan dari WhatsApp ${esc(tenant.wa_number)} → Perangkat tertaut → Tautkan perangkat.`;
+}
+
+export function dashboardPage(tenant, stats, flash) {
   return layout(
     "Dashboard",
     `<div class="row">
@@ -62,13 +81,15 @@ export function dashboardPage(tenant, stats, webhookUrl, flash) {
       <div class="card"><div class="muted">Perlu admin</div><div class="stat ${stats.attention ? "warn" : ""}">${stats.attention}</div></div>
     </div>
     <div class="card">
-      <h3>Sambungkan Fonnte</h3>
-      <ol>
-        <li>Isi <b>token device Fonnte</b> di <a href="/pengaturan">Pengaturan</a>.</li>
-        <li>Di dashboard Fonnte → Device → Edit, isi <b>Webhook</b> dengan URL ini:<br><code>${esc(webhookUrl)}</code></li>
-        <li>Aktifkan "Autoread" di Fonnte bila perlu, lalu coba kirim chat ke nomor toko.</li>
-      </ol>
-      <p>Status: ${tenant.fonnte_token ? "✅ token terisi" : '<span class="warn">token belum diisi</span>'} · AI ${tenant.ai_enabled ? "✅ aktif" : '<span class="warn">nonaktif</span>'}</p>
+      <h3>Status WhatsApp</h3>
+      <p>${waStatusHtml(tenant)}</p>
+      <p>AI auto-reply: ${tenant.ai_enabled ? "✅ aktif" : '<span class="warn">nonaktif</span>'}</p>
+    </div>
+    <div class="card">
+      <h3>Mau balas sendiri dari HP?</h3>
+      <p class="muted">Kirim perintah dari <b>nomor pemilik</b> ${tenant.owner_phone ? `(${esc(tenant.owner_phone)})` : '(isi dulu di <a href="/pengaturan">Pengaturan</a>)'} ke nomor toko supaya AI tidak ikut membalas:</p>
+      ${OWNER_HELP_HTML}
+      <p class="muted">Kalau kamu membalas dari halaman Percakapan di sini, AI otomatis diam selama 1 jam untuk chat itu.</p>
     </div>`,
     { tenant, flash }
   );
@@ -138,7 +159,7 @@ export function contactsPage(tenant, contacts) {
     .map(
       (c) => `<tr><td><a href="/percakapan/${c.id}">${esc(c.name || c.phone)}</a><div class="muted">${esc(c.phone)}</div></td>
       <td>${esc((c.last_text || "").slice(0, 80))}</td><td class="muted">${esc(c.last_message_at)}</td>
-      <td>${c.needs_attention ? '<span class="warn">Perlu admin</span>' : c.ai_paused ? "AI dijeda" : "AI aktif"}</td></tr>`
+      <td>${c.needs_attention ? '<span class="warn">Perlu admin</span>' : c.ai_paused ? "AI dijeda" : isAiPaused(c) ? "AI diam sementara" : "AI aktif"}</td></tr>`
     )
     .join("");
   return layout(
@@ -152,7 +173,7 @@ export function conversationPage(tenant, contact, messages, flash) {
   const bubbles = messages
     .map(
       (m) =>
-        `<div class="msg ${m.role}"><small>${m.role === "user" ? "Pelanggan" : m.role === "admin" ? "Admin" : "AI"} · ${esc(m.created_at)}</small>${esc(m.content)}</div>`
+        `<div class="msg ${m.role}"><small>${m.role === "user" ? "Pelanggan" : m.role === "admin" ? "Admin" : "AI"} · ${esc(m.created_at)}</small>${waFormat(m.content)}</div>`
     )
     .join("");
   return layout(
@@ -161,10 +182,11 @@ export function conversationPage(tenant, contact, messages, flash) {
       <form method="post" action="/percakapan/${contact.id}/ai" style="display:inline">
         <input type="hidden" name="paused" value="${contact.ai_paused ? 0 : 1}">
         <button class="secondary">${contact.ai_paused ? "▶️ Aktifkan AI lagi" : "⏸️ Jeda AI (ambil alih)"}</button></form>
-      ${contact.needs_attention ? '<span class="warn"> · Perlu admin</span>' : ""}</div>
+      ${contact.needs_attention ? '<span class="warn"> · Perlu admin</span>' : ""}
+      ${!contact.ai_paused && isAiPaused(contact) ? `<span class="muted"> · AI diam sementara sampai ${esc(contact.ai_paused_until)} UTC</span>` : ""}</div>
     <div class="card">${bubbles || '<p class="muted">Belum ada pesan.</p>'}</div>
     <div class="card"><form method="post" action="/percakapan/${contact.id}/balas">
-      <label>Balas sebagai admin (AI otomatis dijeda)</label><textarea name="message" required></textarea>
+      <label>Balas sebagai admin (AI otomatis diam 1 jam untuk chat ini)</label><textarea name="message" required></textarea>
       <p><button>Kirim</button></p></form></div>`,
     { tenant, flash }
   );
@@ -175,12 +197,66 @@ export function settingsPage(tenant, flash) {
     "Pengaturan",
     `<div class="card"><form method="post" action="/pengaturan">
       <label>Nama toko</label><input name="name" required value="${esc(tenant.name)}">
-      <label>Token device Fonnte</label><input name="fonnte_token" value="${esc(tenant.fonnte_token)}" autocomplete="off">
-      <label>Nomor WA pemilik (untuk notifikasi pesanan & eskalasi), mis. 0812...</label><input name="owner_phone" value="${esc(tenant.owner_phone)}">
+      <label>Nomor WhatsApp toko (nomor yang dipakai pelanggan untuk chat)</label><input name="wa_number" value="${esc(tenant.wa_number)}" placeholder="0812...">
+      <p class="muted" style="margin:4px 0 0">${waStatusHtml(tenant)}</p>
+      <label>Nomor WA pemilik — untuk notifikasi pesanan, eskalasi, dan perintah #stop/#start. Harus beda dengan nomor toko.</label><input name="owner_phone" value="${esc(tenant.owner_phone)}">
       <label>Info toko (jam buka, alamat, ongkir, kebijakan retur, FAQ) — dipakai AI untuk menjawab</label><textarea name="store_info" style="min-height:160px">${esc(tenant.store_info)}</textarea>
       <label>Cara pembayaran (rekening / QRIS / e-wallet)</label><textarea name="payment_info">${esc(tenant.payment_info)}</textarea>
       <label><input type="checkbox" name="ai_enabled" value="1" style="width:auto" ${tenant.ai_enabled ? "checked" : ""}> AI auto-reply aktif</label>
       <p><button>Simpan</button></p></form></div>`,
     { tenant, flash }
+  );
+}
+
+// ---------- platform admin ----------
+export function adminShopsPage(me, shops, flash) {
+  const rows = shops
+    .map(
+      (t) => `<tr><td><a href="/admin/toko/${t.id}"><b>${esc(t.name)}</b></a><div class="muted">${esc(t.email)}</div></td>
+      <td>${esc(t.wa_number) || '<span class="muted">-</span>'}</td>
+      <td>${t.fonnte_token ? "✅ Tersambung" : '<span class="warn">Belum</span>'}</td>
+      <td>${t.active ? "Aktif" : '<span class="warn">Nonaktif</span>'}</td>
+      <td>${t.orders30}</td><td>${t.ai30}</td><td class="muted">${esc(t.last_in || "-")}</td>
+      <td class="muted">${esc(t.created_at)}</td></tr>`
+    )
+    .join("");
+  const pending = shops.filter((t) => !t.fonnte_token).length;
+  return layout(
+    "Admin Platform",
+    `<div class="row">
+      <div class="card"><div class="muted">Total toko</div><div class="stat">${shops.length}</div></div>
+      <div class="card"><div class="muted">Menunggu disambungkan</div><div class="stat ${pending ? "warn" : ""}">${pending}</div></div>
+      <div class="card"><div class="muted">Balasan AI (30 hari)</div><div class="stat">${shops.reduce((a, t) => a + t.ai30, 0)}</div></div>
+    </div>
+    <div class="card scroll"><table><tr><th>Toko</th><th>Nomor WA</th><th>Fonnte</th><th>Status</th><th>Pesanan 30h</th><th>Balasan AI 30h</th><th>Chat terakhir</th><th>Daftar</th></tr>
+    ${rows || '<tr><td colspan="8" class="muted">Belum ada toko.</td></tr>'}</table></div>`,
+    { tenant: me, flash }
+  );
+}
+
+export function adminShopPage(me, shop, webhookUrl, flash) {
+  return layout(
+    `Admin · ${shop.name}`,
+    `<p><a href="/admin">← Semua toko</a></p>
+    <div class="card"><h3>${esc(shop.name)}</h3>
+      <p class="muted">${esc(shop.email)} · pemilik: ${esc(shop.owner_phone) || "-"} · daftar ${esc(shop.created_at)}</p></div>
+    <div class="card"><h3>Langkah menyambungkan (di akun Fonnte kita)</h3>
+      <ol>
+        <li>Login dashboard Fonnte → <b>Add device</b> dengan nomor <b>${esc(shop.wa_number) || "(pedagang belum mengisi nomor toko)"}</b>.</li>
+        <li>Klik <b>Connect</b>, lalu kirim QR-nya ke pemilik toko (${esc(shop.owner_phone) || "nomor pemilik belum diisi"}). Pemilik scan dari WhatsApp nomor toko → Perangkat tertaut → Tautkan perangkat.</li>
+        <li>Di device itu, isi <b>Webhook</b> dengan:<br><code>${esc(webhookUrl)}</code></li>
+        <li>Salin <b>token device</b> ke form di bawah, simpan, lalu klik <b>Tes kirim WA</b>.</li>
+      </ol></div>
+    <div class="card"><form method="post" action="/admin/toko/${shop.id}">
+      <label>Nomor WA toko (device Fonnte)</label><input name="wa_number" value="${esc(shop.wa_number)}">
+      <label>Token device Fonnte ${shop.fonnte_token ? `(tersimpan: ••••${esc(shop.fonnte_token.slice(-4))} — kosongkan jika tidak diganti)` : "(belum ada)"}</label>
+      <input name="fonnte_token" type="password" autocomplete="off" placeholder="${shop.fonnte_token ? "biarkan kosong untuk tetap" : "tempel token di sini"}">
+      ${shop.fonnte_token ? '<label><input type="checkbox" name="clear_token" value="1" style="width:auto"> Hapus token (putuskan WA)</label>' : ""}
+      <label><input type="checkbox" name="active" value="1" style="width:auto" ${shop.active ? "checked" : ""}> Akun aktif (hapus centang untuk menangguhkan, misalnya belum bayar)</label>
+      <p><button>Simpan</button></p></form>
+      <form method="post" action="/admin/toko/${shop.id}/tes">
+        ${shop.owner_phone ? "" : '<label>Nomor tujuan tes</label><input name="target" placeholder="0812...">'}
+        <p><button class="secondary">Tes kirim WA${shop.owner_phone ? ` ke ${esc(shop.owner_phone)}` : ""}</button></p></form></div>`,
+    { tenant: me, flash }
   );
 }

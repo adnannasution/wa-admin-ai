@@ -10,7 +10,7 @@ export async function sendPaymentReminders(db, { send = sendWhatsApp } = {}) {
     .prepare(
       `SELECT o.*, c.phone, t.fonnte_token, t.payment_info, t.name AS store
          FROM orders o JOIN contacts c ON c.id = o.contact_id JOIN tenants t ON t.id = o.tenant_id
-        WHERE o.status = 'menunggu_bayar' AND o.reminders_sent < ? AND t.fonnte_token <> ''
+        WHERE o.status = 'menunggu_bayar' AND o.reminders_sent < ? AND t.fonnte_token <> '' AND t.active = 1
           AND datetime(COALESCE(o.last_reminder_at, o.created_at), '+' || ? || ' hours') <= datetime('now')`
     )
     .all(MAX, HOURS);

@@ -72,7 +72,34 @@ export function openDb(file = process.env.DATABASE_PATH || "./data/app.db") {
     );
     CREATE INDEX IF NOT EXISTS idx_orders_tenant ON orders(tenant_id, status);
   `);
+  migrate(db);
   return db;
+}
+
+// Additive migrations for databases created by earlier versions.
+function migrate(db) {
+  const addColumn = (table, column, ddl) => {
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+    if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`);
+  };
+  addColumn("tenants", "wa_number", "wa_number TEXT NOT NULL DEFAULT ''"); // shop's WhatsApp number (Fonnte device)
+  addColumn("tenants", "active", "active INTEGER NOT NULL DEFAULT 1"); // 0 = suspended by platform admin
+  addColumn("contacts", "ai_paused_until", "ai_paused_until TEXT"); // temporary pause after a human reply
+}
+
+/** True when the AI should not answer this contact right now. */
+export function isAiPaused(contact) {
+  if (contact.ai_paused) return true;
+  if (!contact.ai_paused_until) return false;
+  return new Date(contact.ai_paused_until.replace(" ", "T") + "Z").getTime() > Date.now();
+}
+
+/** Pauses the AI for one contact for `minutes` (temporary, auto-resumes). */
+export function pauseAiFor(db, contactId, minutes) {
+  db.prepare("UPDATE contacts SET ai_paused_until = datetime('now', '+' || ? || ' minutes') WHERE id = ?").run(
+    Number(minutes),
+    contactId
+  );
 }
 
 export const ORDER_STATUSES = {

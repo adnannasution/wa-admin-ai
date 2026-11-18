@@ -10,7 +10,7 @@ Admin WhatsApp otomatis untuk UMKM. Pelanggan chat ke nomor toko, AI (Claude) ya
 - **Status pesanan**: Menunggu bayar → Dibayar → Dikirim (dengan resi) → Selesai / Batal. Pelanggan dikabari otomatis lewat WA.
 - **Pengingat pembayaran**: dikirim otomatis setiap 6 jam, maksimal 2 kali (bisa diatur).
 - **Export CSV** pesanan, bisa langsung dibuka di Excel atau Google Sheets.
-- **Multi-toko (SaaS)**: tiap toko punya akun, token Fonnte, dan URL webhook sendiri.
+- **Multi-toko (SaaS)**: tiap toko punya akun sendiri. Nomor WA disambungkan oleh admin platform lewat akun Fonnte milik platform.
 
 ## Menjalankan lokal
 Butuh Node.js ≥ 22.13. Database memakai SQLite bawaan Node, tanpa instalasi tambahan.
@@ -24,19 +24,34 @@ npm test
 
 Fonnte harus bisa menjangkau webhook, jadi untuk tes lokal pakai tunnel (misalnya `cloudflared tunnel --url http://localhost:3000`) dan isi `PUBLIC_URL` dengan URL tunnel itu.
 
-## Menyambungkan Fonnte
-1. Daftar toko di aplikasi, lalu buka **Pengaturan**.
-2. Isi **token device** dari dashboard Fonnte (menu Device → token), info toko, cara pembayaran, dan nomor WA pemilik.
-3. Salin **URL webhook** di Dashboard (`https://domainmu/webhook/<kunci-rahasia>`).
-4. Di Fonnte: Device → Edit → kolom **Webhook**, tempel URL tadi, lalu simpan.
-5. Kirim chat ke nomor toko dari HP lain untuk mencoba.
+## Model layanan: akun Fonnte milik platform
+Pedagang **tidak perlu punya akun Fonnte**. Semua nomor WA toko disambungkan sebagai device di akun Fonnte milik platform, dan biayanya sudah termasuk dalam harga paket. Setiap toko tetap memakai nomor WA-nya sendiri.
 
-Pesan grup diabaikan. URL webhook mengandung kunci acak, jadi jangan dibagikan.
+**Alur pedagang:**
+1. Daftar, lalu isi **nomor WA toko**, **nomor WA pemilik** (harus beda), info toko, dan cara bayar di Pengaturan.
+2. Tunggu QR dari tim kita, lalu scan dari WhatsApp nomor toko → Perangkat tertaut → Tautkan perangkat.
+3. Dashboard menampilkan "✅ WhatsApp tersambung".
+
+**Alur admin platform** (email terdaftar di `SUPERADMIN_EMAILS` → menu **Admin Platform** / `/admin`):
+1. Lihat toko yang statusnya **Belum** tersambung.
+2. Di Fonnte: Add device dengan nomor toko, Connect, lalu kirim QR ke pemilik.
+3. Isi Webhook device dengan URL yang tertera di halaman toko (`/admin/toko/:id`).
+4. Tempel token device ke halaman toko, simpan, lalu klik **Tes kirim WA**.
+5. Untuk menangguhkan toko (misalnya belum bayar), hapus centang **Akun aktif**. AI berhenti membalas dan pengingat bayar berhenti.
+
+Token Fonnte tidak pernah ditampilkan ke pedagang.
+
+## Supaya AI tidak dobel membalas
+- **Perintah dari nomor pemilik** ke nomor toko: `#stop 0812xxx`, `#start 0812xxx`, `#stop semua`, `#start semua`, `#status`. Pesan dari nomor pemilik tidak pernah dijawab AI sebagai pelanggan.
+- **Membalas dari dashboard**: AI otomatis diam selama `AI_PAUSE_MINUTES` (default 60 menit) untuk chat itu, lalu aktif lagi.
+- **Eskalasi** (komplain dan sejenisnya): AI berhenti untuk kontak itu sampai dinyalakan lagi.
+
+Catatan: belum dicek apakah Fonnte meneruskan pesan yang diketik pemilik langsung dari HP ke webhook. Karena itu pemilik yang membalas dari HP perlu memakai `#stop`.
 
 ## Deploy (Railway)
 - Buat service dari repo ini. `railway.json` sudah menyetel `npm start` dan healthcheck `/health`.
 - Tambahkan **Volume** yang di-mount ke `/app/data` supaya database tidak hilang saat redeploy, lalu set `DATABASE_PATH=/app/data/app.db`.
-- Set variabel `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `PUBLIC_URL`, dan `NODE_ENV=production`.
+- Set variabel `SESSION_SECRET`, `ANTHROPIC_API_KEY`, `PUBLIC_URL`, `SUPERADMIN_EMAILS`, dan `NODE_ENV=production`.
 
 ## Biaya AI
 Default model `claude-opus-5-5` dengan effort `low`. Prompt sistem (info toko + katalog) di-cache supaya chat berikutnya lebih murah. Untuk menekan biaya, set `CLAUDE_MODEL=claude-haiku-5-5`, tapi uji dulu kualitas balasannya. Jika model menolak menjawab, API otomatis mencoba model cadangan (`fallbacks: "default"`).
