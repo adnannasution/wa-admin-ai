@@ -85,6 +85,9 @@ function migrate(db) {
   addColumn("tenants", "wa_number", "wa_number TEXT NOT NULL DEFAULT ''"); // shop's WhatsApp number (Fonnte device)
   addColumn("tenants", "active", "active INTEGER NOT NULL DEFAULT 1"); // 0 = suspended by platform admin
   addColumn("contacts", "ai_paused_until", "ai_paused_until TEXT"); // temporary pause after a human reply
+  addColumn("tenants", "wa_status", "wa_status TEXT NOT NULL DEFAULT ''"); // Fonnte device: connect | disconnect
+  addColumn("tenants", "wa_status_reason", "wa_status_reason TEXT NOT NULL DEFAULT ''");
+  addColumn("tenants", "wa_status_at", "wa_status_at TEXT");
 }
 
 /** True when the AI should not answer this contact right now. */

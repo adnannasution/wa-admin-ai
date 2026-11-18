@@ -116,8 +116,27 @@ test("payment reminders are sent once due and capped", async () => {
   assert.equal(await sendPaymentReminders(db, { send }), 0); // not due again yet
 });
 
-async function withServer(db, fn) {
-  const app = createApp(db, { send: async () => {} });
+// Fake Fonnte device API that records calls.
+function fakeFonnte(overrides = {}) {
+  const calls = [];
+  const rec = (name, result) => async (...args) => {
+    calls.push([name, ...args]);
+    const r = typeof result === "function" ? result(...args) : result;
+    if (r instanceof Error) throw r;
+    return r;
+  };
+  return {
+    calls,
+    addDevice: rec("addDevice", overrides.addDevice ?? { status: true, token: "DEV-TOKEN-9" }),
+    updateDevice: rec("updateDevice", { status: true }),
+    getQr: rec("getQr", overrides.getQr ?? ((tok, o) => (o.type === "code" ? { status: true, code: "ABCD-1234" } : { status: true, url: "iVBORw0KGgo" }))),
+    profile: rec("profile", overrides.profile ?? { status: true, device_status: "disconnect", package: "Lite", quota: "1000", expired: "1 Jan 2027" }),
+    disconnect: rec("disconnect", { status: true }),
+  };
+}
+
+async function withServer(db, fn, deps = {}) {
+  const app = createApp(db, { send: async () => {}, fonnte: fakeFonnte(), accountToken: "", ...deps });
   const server = app.listen(0);
   try {
     await fn(`http://127.0.0.1:${server.address().port}`);
@@ -155,7 +174,7 @@ test("merchant flow: register, product, settings cannot set Fonnte token", async
     assert.equal(t.fonnte_token, ""); // merchants can't set the token
 
     const html = await (await fetch(`${base}/dashboard`, { headers: { cookie } })).text();
-    assert.match(html, /Menunggu disambungkan/);
+    assert.match(html, /Belum tersambung/);
     assert.doesNotMatch(html, /webhook\//); // webhook URL is admin-only
     assert.equal((await fetch(`${base}/admin`, { headers: { cookie } })).status, 404);
 
@@ -189,7 +208,7 @@ test("platform admin connects a shop, token kept when blank, can suspend", async
 
     const html = await (await fetch(`${base}/dashboard`, { headers: { cookie: shopCookie } })).text();
     assert.match(html, /sedang nonaktif/);
-    assert.match(html, /WhatsApp tersambung/);
+    assert.match(html, /Belum tersambung/); // token set but device not connected yet
   });
   delete process.env.SUPERADMIN_EMAILS;
 });
@@ -238,4 +257,79 @@ test("admin reply from dashboard pauses AI temporarily, then it resumes", async 
 
 test("waFormat renders WhatsApp bold/italic safely", () => {
   assert.equal(waFormat("*Total* _ok_ <b>"), "<b>Total</b> <i>ok</i> &lt;b&gt;");
+});
+
+test("self-service connect: create device, set webhooks, show QR / pairing code, detect connection", async () => {
+  const { db } = setup();
+  const fonnte = fakeFonnte();
+  await withServer(
+    db,
+    async (base) => {
+      const cookie = await register(base, "kopi@toko.id", "Kopi Senja");
+      let html = await (await fetch(`${base}/whatsapp`, { headers: { cookie } })).text();
+      assert.match(html, /Isi dulu <b>nomor WhatsApp toko/);
+
+      await post(base, "/pengaturan", cookie, { name: "Kopi Senja", wa_number: "0812999", owner_phone: "0813111" });
+      html = await (await fetch(`${base}/whatsapp`, { headers: { cookie } })).text();
+      assert.match(html, /Sambungkan WhatsApp<\/button>/);
+
+      await post(base, "/whatsapp/mulai", cookie, {});
+      const t = db.prepare("SELECT * FROM tenants WHERE email = 'kopi@toko.id'").get();
+      assert.equal(t.fonnte_token, "DEV-TOKEN-9");
+      const [, acct, addArgs] = fonnte.calls.find((c) => c[0] === "addDevice");
+      assert.equal(acct, "ACCT-TOKEN");
+      assert.deepEqual(addArgs, { name: "Kopi Senja", device: "62812999" });
+      const [, devTok, upd] = fonnte.calls.find((c) => c[0] === "updateDevice");
+      assert.equal(devTok, "DEV-TOKEN-9");
+      assert.equal(upd.webhook, `${base}/webhook/${t.webhook_key}`);
+      assert.equal(upd.webhookconnect, `${base}/webhook/${t.webhook_key}/status`);
+
+      assert.deepEqual(await (await fetch(`${base}/whatsapp/qr`, { headers: { cookie } })).json(), { qr: "iVBORw0KGgo" });
+      assert.deepEqual(await (await fetch(`${base}/whatsapp/qr?type=code`, { headers: { cookie } })).json(), { code: "ABCD-1234" });
+      assert.equal(fonnte.calls.find((c) => c[0] === "getQr" && c[2].type === "code")[2].whatsapp, "62812999");
+
+      // number is locked once the device exists
+      await post(base, "/pengaturan", cookie, { name: "Kopi Senja", wa_number: "0899000", owner_phone: "0813111" });
+      assert.equal(db.prepare("SELECT wa_number FROM tenants WHERE id = ?").get(t.id).wa_number, "62812999");
+
+      // Fonnte reports the connection via webhookconnect
+      const r = await fetch(`${base}/webhook/${t.webhook_key}/status`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ device: "62812999", status: "connect", timestamp: 1 }),
+      });
+      assert.equal(r.status, 200);
+      html = await (await fetch(`${base}/dashboard`, { headers: { cookie } })).text();
+      assert.match(html, /WhatsApp tersambung/);
+      html = await (await fetch(`${base}/whatsapp`, { headers: { cookie } })).text();
+      assert.match(html, /sudah tersambung/);
+    },
+    { fonnte, accountToken: "ACCT-TOKEN" }
+  );
+});
+
+test("self-service connect explains Fonnte errors and falls back to manual when no account token", async () => {
+  const { db } = setup();
+  const err = Object.assign(new Error("too much free device"), { fonnteReason: "too much free device" });
+  await withServer(
+    db,
+    async (base) => {
+      const cookie = await register(base, "a@toko.id", "A");
+      await post(base, "/pengaturan", cookie, { name: "A", wa_number: "0812000" });
+      const r = await post(base, "/whatsapp/mulai", cookie, {});
+      assert.match(decodeURIComponent(r.headers.get("location")), /Kuota device gratis Fonnte platform penuh/);
+      assert.equal(db.prepare("SELECT fonnte_token FROM tenants WHERE email = 'a@toko.id'").get().fonnte_token, "");
+    },
+    { fonnte: fakeFonnte({ addDevice: err }), accountToken: "ACCT" }
+  );
+  await withServer(db, async (base) => {
+    const cookie = await register(base, "b@toko.id", "B");
+    await post(base, "/pengaturan", cookie, { name: "B", wa_number: "0812001" });
+    const html = await (await fetch(`${base}/whatsapp`, { headers: { cookie } })).text();
+    assert.match(html, /Tim kami akan menyiapkan sambungan/);
+  });
+});
+
+test("@lid senders are kept verbatim", () => {
+  assert.equal(parseIncoming({ sender: "123456789@lid", message: "hi" }).phone, "123456789@lid");
 });

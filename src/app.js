@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 import { ORDER_STATUSES, addMessage, restockOrder, pauseAiFor } from "./db.js";
 import { hashPassword, verifyPassword, makeSessionCookie, readSession, cookieOptions } from "./auth.js";
 import { handleIncoming } from "./bot.js";
-import { normalizePhone, rupiah, sendWhatsApp } from "./fonnte.js";
+import { normalizePhone, rupiah, sendWhatsApp, fonnteDevices, explainFonnteError } from "./fonnte.js";
 import * as V from "./views.js";
 
 const STATUS_MESSAGES = {
@@ -23,6 +23,8 @@ export const isSuperAdmin = (tenant) =>
 
 export function createApp(db, deps = {}) {
   const send = deps.send || sendWhatsApp;
+  const fonnte = deps.fonnte || fonnteDevices;
+  const accountToken = () => deps.accountToken ?? process.env.FONNTE_ACCOUNT_TOKEN ?? "";
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
@@ -31,7 +33,22 @@ export function createApp(db, deps = {}) {
 
   const baseUrl = (req) => process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`;
 
-  // ---------- Fonnte webhook (public) ----------
+  // ---------- Fonnte webhooks (public) ----------
+  // Device connection events (webhookconnect): { device, status: connect|disconnect, timestamp, reason }
+  app.post("/webhook/:key/status", (req, res) => {
+    const tenant = db.prepare("SELECT * FROM tenants WHERE webhook_key = ?").get(req.params.key);
+    if (!tenant) return res.status(404).json({ ok: false });
+    const status = String(req.body?.status || "");
+    if (status === "connect" || status === "disconnect") {
+      db.prepare("UPDATE tenants SET wa_status = ?, wa_status_reason = ?, wa_status_at = datetime('now') WHERE id = ?").run(
+        status,
+        String(req.body.reason || ""),
+        tenant.id
+      );
+    }
+    res.json({ ok: true });
+  });
+
   app.post("/webhook/:key", (req, res) => {
     const tenant = db.prepare("SELECT * FROM tenants WHERE webhook_key = ?").get(req.params.key);
     if (!tenant) return res.status(404).json({ ok: false });
@@ -109,7 +126,7 @@ export function createApp(db, deps = {}) {
       "UPDATE tenants SET name = ?, wa_number = ?, owner_phone = ?, store_info = ?, payment_info = ?, ai_enabled = ? WHERE id = ?"
     ).run(
       String(b.name || req.tenant.name).trim(),
-      normalizePhone(b.wa_number),
+      req.tenant.fonnte_token ? req.tenant.wa_number : normalizePhone(b.wa_number), // device number is fixed once created
       normalizePhone(b.owner_phone),
       String(b.store_info || ""),
       String(b.payment_info || ""),
@@ -264,6 +281,81 @@ export function createApp(db, deps = {}) {
     }
   });
 
+  // ---------- WhatsApp connection (Fonnte device API) ----------
+  const setStatus = (id, status, reason = "") =>
+    db.prepare("UPDATE tenants SET wa_status = ?, wa_status_reason = ?, wa_status_at = datetime('now') WHERE id = ?").run(status, reason, id);
+
+  /** Creates the shop's device in our Fonnte account (if needed) and points its webhooks at us. */
+  async function setupDevice(shop, base) {
+    if (!shop.wa_number) throw new Error("Isi dulu nomor WhatsApp toko di Pengaturan.");
+    const name = (shop.name.trim() + " ").slice(0, 30).trim().padEnd(2, "_");
+    let token = shop.fonnte_token;
+    if (!token) {
+      if (!accountToken()) throw new Error("Sambung otomatis belum diaktifkan. Tim kami akan menyambungkan secara manual.");
+      token = (await fonnte.addDevice(accountToken(), { name, device: shop.wa_number })).token;
+      db.prepare("UPDATE tenants SET fonnte_token = ?, wa_status = 'disconnect' WHERE id = ?").run(token, shop.id);
+    }
+    const hook = `${base}/webhook/${shop.webhook_key}`;
+    await fonnte.updateDevice(token, { name, device: shop.wa_number, webhook: hook, webhookconnect: `${hook}/status` });
+    return token;
+  }
+
+  /** Asks Fonnte for the live device status and stores it. */
+  async function refreshStatus(shop) {
+    const p = await fonnte.profile(shop.fonnte_token);
+    setStatus(shop.id, p.device_status === "connect" ? "connect" : "disconnect");
+    return p;
+  }
+
+  app.get("/whatsapp", auth, (req, res) => res.send(V.whatsappPage(req.tenant, !!accountToken(), flash(req))));
+
+  app.post("/whatsapp/mulai", auth, async (req, res) => {
+    let msg;
+    try {
+      await setupDevice(req.tenant, baseUrl(req));
+      msg = "Siap! Scan QR di bawah dari WhatsApp nomor toko.";
+    } catch (e) {
+      msg = explainFonnteError(e);
+    }
+    res.redirect(`/whatsapp?ok=${encodeURIComponent(msg)}`);
+  });
+
+  app.get("/whatsapp/qr", auth, async (req, res) => {
+    const t = req.tenant;
+    if (!t.fonnte_token) return res.json({ error: "Klik Sambungkan WhatsApp dulu." });
+    const type = req.query.type === "code" ? "code" : "qr";
+    try {
+      const r = await fonnte.getQr(t.fonnte_token, { type, whatsapp: type === "code" ? t.wa_number : undefined });
+      res.json(type === "code" ? { code: r.code || r.url } : { qr: r.url });
+    } catch (e) {
+      if (/already connect/i.test(String(e.fonnteReason || e.message))) {
+        setStatus(t.id, "connect");
+        return res.json({ connected: true });
+      }
+      res.json({ error: explainFonnteError(e) });
+    }
+  });
+
+  app.get("/whatsapp/status", auth, async (req, res) => {
+    if (!req.tenant.fonnte_token) return res.json({ status: "none" });
+    try {
+      res.json({ status: (await refreshStatus(req.tenant)).device_status });
+    } catch (e) {
+      res.json({ status: req.tenant.wa_status || "unknown", error: explainFonnteError(e) });
+    }
+  });
+
+  app.post("/whatsapp/putus", auth, async (req, res) => {
+    let msg = "WhatsApp diputus. AI tidak akan membalas sampai disambungkan lagi.";
+    try {
+      await fonnte.disconnect(req.tenant.fonnte_token);
+      setStatus(req.tenant.id, "disconnect", "diputus dari dashboard");
+    } catch (e) {
+      msg = explainFonnteError(e);
+    }
+    res.redirect(`/whatsapp?ok=${encodeURIComponent(msg)}`);
+  });
+
   // ---------- platform admin (SUPERADMIN_EMAILS) ----------
   app.get("/admin", auth, superOnly, (req, res) => {
     const shops = db
@@ -281,10 +373,18 @@ export function createApp(db, deps = {}) {
 
   const getShop = (req) => db.prepare("SELECT * FROM tenants WHERE id = ?").get(req.params.id);
 
-  app.get("/admin/toko/:id", auth, superOnly, (req, res) => {
+  app.get("/admin/toko/:id", auth, superOnly, async (req, res) => {
     const shop = getShop(req);
     if (!shop) return res.redirect("/admin");
-    res.send(V.adminShopPage(req.tenant, shop, `${baseUrl(req)}/webhook/${shop.webhook_key}`, flash(req)));
+    let device = null;
+    if (shop.fonnte_token) {
+      try {
+        device = await refreshStatus(shop);
+      } catch (e) {
+        device = { error: explainFonnteError(e) };
+      }
+    }
+    res.send(V.adminShopPage(req.tenant, shop, `${baseUrl(req)}/webhook/${shop.webhook_key}`, device, !!accountToken(), flash(req)));
   });
 
   app.post("/admin/toko/:id", auth, superOnly, (req, res) => {
@@ -299,6 +399,18 @@ export function createApp(db, deps = {}) {
       shop.id
     );
     res.redirect(`/admin/toko/${shop.id}?ok=Tersimpan`);
+  });
+
+  app.post("/admin/toko/:id/setup", auth, superOnly, async (req, res) => {
+    const shop = getShop(req);
+    if (!shop) return res.redirect("/admin");
+    let msg = "Device dibuat & webhook diatur. Minta pemilik membuka menu WhatsApp di dashboard untuk scan QR.";
+    try {
+      await setupDevice(shop, baseUrl(req));
+    } catch (e) {
+      msg = `Gagal: ${explainFonnteError(e)}`;
+    }
+    res.redirect(`/admin/toko/${shop.id}?ok=${encodeURIComponent(msg)}`);
   });
 
   app.post("/admin/toko/:id/tes", auth, superOnly, async (req, res) => {

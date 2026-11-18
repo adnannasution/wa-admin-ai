@@ -41,7 +41,7 @@ code{background:var(--bg);padding:2px 6px;border-radius:4px;word-break:break-all
 
 export function layout(title, body, { tenant, flash } = {}) {
   const nav = tenant
-    ? `<header><b>WA Admin AI</b><a href="/dashboard">Dashboard</a><a href="/percakapan">Percakapan</a><a href="/pesanan">Pesanan</a><a href="/produk">Produk</a><a href="/pengaturan">Pengaturan</a>${tenant.is_super ? '<a href="/admin"><b>Admin Platform</b></a>' : ""}<form method="post" action="/logout" style="margin-left:auto"><button class="secondary">Keluar</button></form></header>`
+    ? `<header><b>WA Admin AI</b><a href="/dashboard">Dashboard</a><a href="/whatsapp">WhatsApp</a><a href="/percakapan">Percakapan</a><a href="/pesanan">Pesanan</a><a href="/produk">Produk</a><a href="/pengaturan">Pengaturan</a>${tenant.is_super ? '<a href="/admin"><b>Admin Platform</b></a>' : ""}<form method="post" action="/logout" style="margin-left:auto"><button class="secondary">Keluar</button></form></header>`
     : `<header><b>WA Admin AI</b></header>`;
   return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><style>${CSS}</style></head><body>${nav}<main>${tenant && !tenant.active ? '<div class="flash">⛔ Akun toko ini sedang nonaktif, jadi AI tidak membalas chat. Hubungi admin WA Admin AI.</div>' : ""}${flash ? `<div class="flash">${esc(flash)}</div>` : ""}${body}</main></body></html>`;
 }
@@ -65,10 +65,12 @@ export function authPage(mode, error) {
 }
 
 export function waStatusHtml(tenant) {
-  if (tenant.fonnte_token) return `✅ WhatsApp tersambung${tenant.wa_number ? ` (${esc(tenant.wa_number)})` : ""}`;
-  if (!tenant.wa_number)
-    return `<span class="warn">⏳ Belum tersambung.</span> Isi <b>nomor WhatsApp toko</b> di <a href="/pengaturan">Pengaturan</a>, lalu tim kami akan menghubungi kamu untuk scan QR (cukup sekali, seperti WhatsApp Web).`;
-  return `<span class="warn">⏳ Menunggu disambungkan.</span> Tim kami akan mengirim QR ke nomor pemilik untuk di-scan dari WhatsApp ${esc(tenant.wa_number)} → Perangkat tertaut → Tautkan perangkat.`;
+  if (tenant.fonnte_token && tenant.wa_status === "connect")
+    return `✅ WhatsApp tersambung${tenant.wa_number ? ` (${esc(tenant.wa_number)})` : ""}`;
+  if (!tenant.wa_number) return `<span class="warn">⏳ Belum tersambung.</span> Isi <b>nomor WhatsApp toko</b> di <a href="/pengaturan">Pengaturan</a> dulu.`;
+  if (tenant.fonnte_token && tenant.wa_status === "disconnect" && tenant.wa_status_reason)
+    return `<span class="warn">⚠️ WhatsApp terputus</span> (${esc(tenant.wa_status_reason)}). <a href="/whatsapp">Sambungkan lagi →</a>`;
+  return `<span class="warn">⏳ Belum tersambung.</span> <a href="/whatsapp">Sambungkan WhatsApp sekarang →</a> (cukup scan QR sekali, seperti WhatsApp Web)`;
 }
 
 export function dashboardPage(tenant, stats, flash) {
@@ -234,19 +236,34 @@ export function adminShopsPage(me, shops, flash) {
   );
 }
 
-export function adminShopPage(me, shop, webhookUrl, flash) {
+export function adminShopPage(me, shop, webhookUrl, device, autoEnabled, flash) {
   return layout(
     `Admin · ${shop.name}`,
     `<p><a href="/admin">← Semua toko</a></p>
     <div class="card"><h3>${esc(shop.name)}</h3>
       <p class="muted">${esc(shop.email)} · pemilik: ${esc(shop.owner_phone) || "-"} · daftar ${esc(shop.created_at)}</p></div>
-    <div class="card"><h3>Langkah menyambungkan (di akun Fonnte kita)</h3>
+    <div class="card"><h3>Device Fonnte</h3>
+      ${
+        device?.error
+          ? `<p class="warn">${esc(device.error)}</p>`
+          : device
+            ? `<p>Status: <b>${device.device_status === "connect" ? "✅ connect" : "⚠️ " + esc(device.device_status)}</b> · Paket: <b>${esc(device.package)}</b> · Kuota pesan: <b>${esc(device.quota)}</b> · Berlaku sampai: <b>${esc(device.expired)}</b></p>`
+            : '<p class="muted">Belum ada device.</p>'
+      }
+      ${shop.wa_status_reason ? `<p class="muted">Event terakhir: ${esc(shop.wa_status)} — ${esc(shop.wa_status_reason)} (${esc(shop.wa_status_at)})</p>` : ""}
+      ${
+        autoEnabled
+          ? `<form method="post" action="/admin/toko/${shop.id}/setup"><button>${shop.fonnte_token ? "Atur ulang webhook device" : "Buat device otomatis"}</button></form>
+             <p class="muted">Pemilik lalu scan QR sendiri di menu <b>WhatsApp</b> dashboard-nya. Ingat: tiap device yang tersambung butuh paket Fonnte berbayar (hanya 1 device gratis per akun).</p>`
+          : '<p class="warn">FONNTE_ACCOUNT_TOKEN belum diisi, jadi pembuatan device otomatis nonaktif. Gunakan langkah manual di bawah.</p>'
+      }</div>
+    <details class="card"><summary><b>Langkah manual (tanpa API)</b></summary>
       <ol>
         <li>Login dashboard Fonnte → <b>Add device</b> dengan nomor <b>${esc(shop.wa_number) || "(pedagang belum mengisi nomor toko)"}</b>.</li>
-        <li>Klik <b>Connect</b>, lalu kirim QR-nya ke pemilik toko (${esc(shop.owner_phone) || "nomor pemilik belum diisi"}). Pemilik scan dari WhatsApp nomor toko → Perangkat tertaut → Tautkan perangkat.</li>
-        <li>Di device itu, isi <b>Webhook</b> dengan:<br><code>${esc(webhookUrl)}</code></li>
-        <li>Salin <b>token device</b> ke form di bawah, simpan, lalu klik <b>Tes kirim WA</b>.</li>
-      </ol></div>
+        <li>Edit device: set <b>Autoread ON</b> (wajib, tanpa ini webhook tidak jalan), personal ON, group OFF.</li>
+        <li>Isi <b>Webhook</b>: <code>${esc(webhookUrl)}</code><br>dan <b>Webhook connect</b>: <code>${esc(webhookUrl)}/status</code></li>
+        <li>Salin <b>token device</b> ke form di bawah dan simpan. Pemilik lalu scan QR dari menu WhatsApp di dashboard-nya.</li>
+      </ol></details>
     <div class="card"><form method="post" action="/admin/toko/${shop.id}">
       <label>Nomor WA toko (device Fonnte)</label><input name="wa_number" value="${esc(shop.wa_number)}">
       <label>Token device Fonnte ${shop.fonnte_token ? `(tersimpan: ••••${esc(shop.fonnte_token.slice(-4))} — kosongkan jika tidak diganti)` : "(belum ada)"}</label>
@@ -259,4 +276,75 @@ export function adminShopPage(me, shop, webhookUrl, flash) {
         <p><button class="secondary">Tes kirim WA${shop.owner_phone ? ` ke ${esc(shop.owner_phone)}` : ""}</button></p></form></div>`,
     { tenant: me, flash }
   );
+}
+
+// ---------- WhatsApp connection page ----------
+export function whatsappPage(tenant, autoEnabled, flash) {
+  const connected = tenant.fonnte_token && tenant.wa_status === "connect";
+  let body;
+  if (!tenant.wa_number) {
+    body = `<p>Isi dulu <b>nomor WhatsApp toko</b> di <a href="/pengaturan">Pengaturan</a>.</p>`;
+  } else if (connected) {
+    body = `<p style="font-size:18px">✅ <b>WhatsApp ${esc(tenant.wa_number)} sudah tersambung.</b> AI siap membalas chat pelanggan.</p>
+      <form method="post" action="/whatsapp/putus" onsubmit="return confirm('Putuskan WhatsApp? AI berhenti membalas sampai disambungkan lagi.')">
+        <button class="secondary">Putuskan WhatsApp</button></form>`;
+  } else if (!tenant.fonnte_token) {
+    body = autoEnabled
+      ? `<p>Nomor toko: <b>${esc(tenant.wa_number)}</b></p>
+         <form method="post" action="/whatsapp/mulai"><button>Sambungkan WhatsApp</button></form>
+         <p class="muted">Setelah diklik, QR akan muncul di halaman ini.</p>`
+      : `<p>⏳ Tim kami akan menyiapkan sambungan untuk nomor <b>${esc(tenant.wa_number)}</b>. Kamu akan dikabari jika QR sudah siap.</p>`;
+  } else {
+    body = `<div class="row" style="align-items:flex-start">
+      <div style="flex:0 0 280px;text-align:center">
+        <div id="qrbox" style="width:264px;height:264px;margin:auto;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;background:#fff">
+          <span class="muted">Memuat QR…</span></div>
+        <p id="codebox" style="font:600 26px/1.3 monospace;letter-spacing:3px;display:none"></p>
+        <p><button type="button" class="secondary" id="toggle">Tidak bisa scan? Pakai kode</button></p>
+      </div>
+      <div>
+        <h3>Cara menyambungkan</h3>
+        <ol id="steps-qr">
+          <li>Buka <b>WhatsApp</b> di HP yang memakai nomor <b>${esc(tenant.wa_number)}</b>.</li>
+          <li>Ketuk <b>⋮ / Pengaturan → Perangkat tertaut → Tautkan perangkat</b>.</li>
+          <li>Arahkan kamera ke QR di samping.</li>
+        </ol>
+        <ol id="steps-code" style="display:none">
+          <li>Buka <b>WhatsApp</b> nomor <b>${esc(tenant.wa_number)}</b>.</li>
+          <li>Ketuk <b>Perangkat tertaut → Tautkan perangkat → Tautkan dengan nomor telepon saja</b>.</li>
+          <li>Masukkan kode yang tampil di samping.</li>
+        </ol>
+        <p class="muted">QR diperbarui otomatis. Halaman ini akan berubah sendiri setelah tersambung.</p>
+        <p id="err" class="warn"></p>
+      </div></div>
+      <script>
+      (() => {
+        let mode = "qr";
+        const box = document.getElementById("qrbox"), code = document.getElementById("codebox"), err = document.getElementById("err");
+        async function load() {
+          err.textContent = "";
+          try {
+            const r = await (await fetch("/whatsapp/qr?type=" + mode)).json();
+            if (r.connected) return location.reload();
+            if (r.error) { err.textContent = r.error; return; }
+            if (mode === "qr") { box.innerHTML = '<img alt="QR WhatsApp" style="width:256px;height:256px" src="data:image/png;base64,' + r.qr + '">'; }
+            else { code.textContent = r.code; }
+          } catch (e) { err.textContent = "Gagal memuat, mencoba lagi…"; }
+        }
+        async function poll() {
+          try { const r = await (await fetch("/whatsapp/status")).json(); if (r.status === "connect") location.reload(); } catch (e) {}
+        }
+        document.getElementById("toggle").onclick = (ev) => {
+          mode = mode === "qr" ? "code" : "qr";
+          box.style.display = mode === "qr" ? "flex" : "none"; code.style.display = mode === "code" ? "block" : "none";
+          document.getElementById("steps-qr").style.display = mode === "qr" ? "" : "none";
+          document.getElementById("steps-code").style.display = mode === "code" ? "" : "none";
+          ev.target.textContent = mode === "qr" ? "Tidak bisa scan? Pakai kode" : "Pakai QR";
+          load();
+        };
+        load(); setInterval(load, 30000); setInterval(poll, 5000);
+      })();
+      </script>`;
+  }
+  return layout("Sambungkan WhatsApp", `<div class="card"><h2>WhatsApp toko</h2>${body}</div>`, { tenant, flash });
 }

@@ -27,17 +27,17 @@ Fonnte harus bisa menjangkau webhook, jadi untuk tes lokal pakai tunnel (misalny
 ## Model layanan: akun Fonnte milik platform
 Pedagang **tidak perlu punya akun Fonnte**. Semua nomor WA toko disambungkan sebagai device di akun Fonnte milik platform, dan biayanya sudah termasuk dalam harga paket. Setiap toko tetap memakai nomor WA-nya sendiri.
 
-**Alur pedagang:**
+**Alur pedagang (otomatis, jika `FONNTE_ACCOUNT_TOKEN` diisi):**
 1. Daftar, lalu isi **nomor WA toko**, **nomor WA pemilik** (harus beda), info toko, dan cara bayar di Pengaturan.
-2. Tunggu QR dari tim kita, lalu scan dari WhatsApp nomor toko → Perangkat tertaut → Tautkan perangkat.
-3. Dashboard menampilkan "✅ WhatsApp tersambung".
+2. Buka menu **WhatsApp** → **Sambungkan WhatsApp**. Aplikasi membuat device di akun Fonnte kita lewat API, lalu mengatur webhook dan autoread.
+3. Scan QR yang muncul (WhatsApp → Perangkat tertaut → Tautkan perangkat). Kalau membuka dashboard dari HP yang sama, pakai **kode tautan**.
+4. Halaman berubah otomatis menjadi ✅ setelah tersambung. Status diperbarui lewat webhook connect Fonnte.
 
-**Alur admin platform** (email terdaftar di `SUPERADMIN_EMAILS` → menu **Admin Platform** / `/admin`):
-1. Lihat toko yang statusnya **Belum** tersambung.
-2. Di Fonnte: Add device dengan nomor toko, Connect, lalu kirim QR ke pemilik.
-3. Isi Webhook device dengan URL yang tertera di halaman toko (`/admin/toko/:id`).
-4. Tempel token device ke halaman toko, simpan, lalu klik **Tes kirim WA**.
-5. Untuk menangguhkan toko (misalnya belum bayar), hapus centang **Akun aktif**. AI berhenti membalas dan pengingat bayar berhenti.
+**Hal yang tetap harus diurus admin platform:**
+- **Paket Fonnte per device.** Akun Fonnte hanya bisa menyambungkan 1 device gratis, jadi tiap toko butuh paket berbayar. Beli dari dashboard Fonnte. Panel admin menampilkan paket, kuota, dan masa berlaku tiap device.
+- Menangguhkan toko yang belum bayar langganan: hapus centang **Akun aktif** di `/admin/toko/:id`.
+
+**Mode manual** (tanpa `FONNTE_ACCOUNT_TOKEN`): admin membuat device di Fonnte (Autoread **ON**, webhook dan webhook connect sesuai panel admin), lalu menempel token device di `/admin/toko/:id`. Pedagang tetap men-scan QR dari menu WhatsApp di dashboard-nya.
 
 Token Fonnte tidak pernah ditampilkan ke pedagang.
 
@@ -46,7 +46,9 @@ Token Fonnte tidak pernah ditampilkan ke pedagang.
 - **Membalas dari dashboard**: AI otomatis diam selama `AI_PAUSE_MINUTES` (default 60 menit) untuk chat itu, lalu aktif lagi.
 - **Eskalasi** (komplain dan sejenisnya): AI berhenti untuk kontak itu sampai dinyalakan lagi.
 
-Catatan: belum dicek apakah Fonnte meneruskan pesan yang diketik pemilik langsung dari HP ke webhook. Karena itu pemilik yang membalas dari HP perlu memakai `#stop`.
+Catatan: dokumentasi Fonnte tidak menjelaskan apakah balasan yang diketik pemilik langsung dari HP ikut dikirim ke webhook (opsi `quick` hanya disebut "autoread self chat"). Karena itu aplikasi tidak bergantung pada hal itu, dan pemilik yang membalas dari HP perlu memakai `#stop`.
+
+WhatsApp sedang beralih ke ID `@lid` sebagai pengganti nomor. Pengirim dengan ID itu disimpan apa adanya. Perintah `#stop` memakai nomor biasa, jadi kontak `@lid` dijeda lewat tombol di dashboard.
 
 ## Deploy (Railway)
 - Buat service dari repo ini. `railway.json` sudah menyetel `npm start` dan healthcheck `/health`.
